@@ -364,7 +364,6 @@ static int nameserv_add_local_dns(struct llist *list)
     FIXED_INFO *fInfo;
     ULONG fInfoLen;
     IP_ADDR_STRING *ipAddr;
-    int ret;
 
     fInfo = calloc(1, sizeof(FIXED_INFO));
     if (!fInfo) {
@@ -390,18 +389,18 @@ static int nameserv_add_local_dns(struct llist *list)
     ipAddr = &fInfo->DnsServerList;
 
     while (ipAddr) {
+        if (!is_ipv4(ipAddr->IpAddress.String)) {
+            ipAddr = ipAddr->Next;
+            continue;
+        }
+
         si4 = calloc(1, sizeof(struct sockaddr_in));
         if (!si4) {
             debug("calloc error");
             goto err;
         }
 
-        ret = inet_pton(AF_INET, ipAddr->IpAddress.String, &si4->sin_addr);
-        if (ret <= 0) {
-            if (ret == 0) {
-                ipAddr = ipAddr->Next;
-                continue;
-            }
+        if (inet_pton(AF_INET, ipAddr->IpAddress.String, &si4->sin_addr) <= 0) {
             debug("inet_pton error");
             free(si4);
             goto err;
@@ -459,6 +458,10 @@ static int nameserv_add_local_dns(struct llist *list)
             continue;
 
         ptr = &buf[11];
+
+        if (!is_ipv4(ptr))
+            continue;
+
         si4 = calloc(1, sizeof(struct sockaddr_in));
         if (!si4) {
             debug("calloc error");
