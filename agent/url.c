@@ -213,7 +213,7 @@ int url_value_encode(struct llist *list, char **ret)
 
         s = node->value;
         while (*s) {
-            if (isalnum(*s) || '-' == *s || '.' == *s || '_' == *s ||
+            if (isalnum(*(uint8_t *)s) || '-' == *s || '.' == *s || '_' == *s ||
                 '~' == *s) {
                 if (len >= size) {
                     free(str);

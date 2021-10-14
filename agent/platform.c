@@ -52,11 +52,11 @@ int xvasprintf(char **str, const char *fmt, va_list ap)
     size = vsnprintf(NULL, 0, fmt, tmp);
     va_end(tmp);
 
-    *str = calloc(1, size + 1);
+    *str = calloc(1, (size_t)size + 1);
     if (!(*str))
         return -1;
 
-    return vsnprintf(*str, size + 1, fmt, ap);
+    return vsnprintf(*str, (size_t)size + 1, fmt, ap);
 }
 
 int xasprintf(char **str, const char *fmt, ...)

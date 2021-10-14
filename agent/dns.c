@@ -325,7 +325,7 @@ static void format_dns_name(char *name)
             for (i = n - 1; i >= 0; i--)
                 ptr[i + 1] = ptr[i];
             *ptr = n;
-            ptr += n + 1; /* +1 skip '.' */
+            ptr = ptr + n + 1; /* +1 skip '.' */
             n = 0;
         } else {
             n++;
@@ -681,7 +681,8 @@ static int dns_read_name(char *data, char *ptr, char *name, size_t size)
             pos++;
         }
 
-        name[i++] = '.';
+        if (name && i < size)
+            name[i++] = '.';
     }
 
     pos++; /* skip '\0' */
