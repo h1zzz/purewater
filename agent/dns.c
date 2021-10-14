@@ -85,7 +85,7 @@ static int nameserv_init(struct llist *list);
 static int parse_answer(struct llist *list, int family,
                         const struct dns_node *hints, uint16_t port, char *data,
                         int n);
-static int dns_read_name(char *data, int n, char *ptr, char *name, size_t size);
+static int dns_read_name(char *data, char *ptr, char *name, size_t size);
 static int is_valid_domain_name(const char *domain);
 static int is_ipv4(const char *ip);
 
@@ -325,7 +325,7 @@ static void format_dns_name(char *name)
             for (i = n - 1; i >= 0; i--)
                 ptr[i + 1] = ptr[i];
             *ptr = n;
-            ptr = ptr + n + 1; /* +1 skip '.' */
+            ptr += n + 1; /* +1 skip '.' */
             n = 0;
         } else {
             n++;
@@ -390,6 +390,7 @@ static int nameserv_add_local_dns(struct llist *list)
 
     while (ipAddr) {
         if (!is_ipv4(ipAddr->IpAddress.String)) {
+            debug("Currently only supports the use of IPv4 DNS servers");
             ipAddr = ipAddr->Next;
             continue;
         }
@@ -459,8 +460,10 @@ static int nameserv_add_local_dns(struct llist *list)
 
         ptr = &buf[11];
 
-        if (!is_ipv4(ptr))
+        if (!is_ipv4(ptr)) {
+            debug("Currently only supports the use of IPv4 DNS servers");
             continue;
+        }
 
         si4 = calloc(1, sizeof(struct sockaddr_in));
         if (!si4) {
@@ -557,8 +560,8 @@ static int parse_answer(struct llist *list, int family,
     an_count = ntohs(header->an_count);
 
     memset(name, 0, sizeof(name));
-    ret = dns_read_name(data, n - pos, data + pos, name, sizeof(name));
-    if (ret == 0 || ret >= n - pos)
+    ret = dns_read_name(data, data + pos, name, sizeof(name));
+    if (ret >= n - pos)
         return -1;
 
     pos += ret;
@@ -568,7 +571,7 @@ static int parse_answer(struct llist *list, int family,
 
     for (i = 0; i < an_count; i++) {
         memset(name, 0, sizeof(name));
-        ret = dns_read_name(data, n, data + pos, name, sizeof(name));
+        ret = dns_read_name(data, data + pos, name, sizeof(name));
         if (ret >= n - pos)
             return -1;
 
@@ -638,7 +641,7 @@ static int parse_answer(struct llist *list, int family,
             }
             case TYPE_CNAME: {
                 memset(name, 0, sizeof(name));
-                dns_read_name(data, n, data + pos, name, sizeof(name));
+                dns_read_name(data, data + pos, name, sizeof(name));
                 break;
             }
             /* ... */
@@ -658,43 +661,35 @@ static int parse_answer(struct llist *list, int family,
     return 0;
 }
 
-static int dns_read_name(char *data, int n, char *ptr, char *name, size_t size)
+static int dns_read_name(char *data, char *ptr, char *name, size_t size)
 {
-    uint16_t offset = 0;
-    uint8_t len;
-    char *s = ptr;
-    int ret = 0;
-    size_t i = 0;
+    unsigned int offset, pos = 0, n, jumped = 0, i = 0;
 
-    (void)n;
+    while (ptr[pos]) {
 
-    while (1) {
-        if ((*(uint8_t *)s) & 0xc0) {                /* 0xc0 = 11000000 */
-            offset = ntohs(*(uint16_t *)s) - 0xc000; /* 11000000 00000000 */
-            s += sizeof(offset);
-            ret = (int)(s - ptr);
-            s = data + offset;
+        if (*(uint8_t *)ptr >= 0xc0) {
+            offset = ntohs(*(uint16_t *)ptr) - 0xc000;
+            ptr = data + offset;
+            jumped = 1;
         }
 
-        len = *s++;
-        if (name && i <= size) {
-            memcpy(name + i, s, len);
-            i += len;
+        n = ptr[pos++];
+
+        while (n--) {
+            if (name && i < size)
+                name[i++] = ptr[pos];
+            pos++;
         }
 
-        s += len;
-        if (*s == '\0') {
-            s++;
-            break;
-        }
-
-        if (name && i <= size) {
-            memcpy(name + i, ".", 1);
-            i += 1;
-        }
+        name[i++] = '.';
     }
 
-    return ret ? ret : (int)(s - ptr);
+    pos++; /* skip '\0' */
+
+    if (name && i < size)
+        name[i - 1] = '\0';
+
+    return jumped ? 2 : pos;
 }
 
 int is_valid_domain_name(const char *domain)

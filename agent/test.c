@@ -80,7 +80,7 @@ void dns_test(void)
     hints.socktype = SOCK_STREAM;
     hints.protocol = IPPROTO_IP;
 
-    ret = dns_resolve(&dns, "www.h1zzz.net", 0, &hints);
+    ret = dns_resolve(&dns, "www.baidu.com", 0, &hints);
     if (ret == -1) {
         debug("resolve name error.");
         return;
@@ -130,7 +130,7 @@ void platform_test(void)
     printf("%s\n", str);
 }
 
-void test_url_value_encode(void)
+void url_value_encode_test(void)
 {
     struct llist list;
     char *str;
@@ -150,11 +150,11 @@ void test_url_value_encode(void)
     url_value_destroy(&list);
 }
 
-void test_url_value_decode(void)
+void url_value_decode_test(void)
 {
-    static const char *s =
-        "sl=en&tl=zh-CN&text=hello%20world%20%E4%BD%A0%E5%A5%BD%"
-        "E5%95%8A&op=translate&name=h1zzz";
+    /* clang-format off */
+    static const char *s = "sl=en&tl=zh-CN&text=hello%20world%20%E4%BD%A0%E5%A5%BD%5%95%8A&op=translate&name=h1zzz";
+    /* clang-format on */
     struct llist list;
     char *str;
 
@@ -170,7 +170,7 @@ void test_url_value_decode(void)
     url_value_destroy(&list);
 }
 
-void test_url_decode(void)
+void url_decode_test(void)
 {
     struct url url;
 
@@ -218,7 +218,12 @@ void connection_test(void)
 
 int main(void)
 {
-    test_url_value_decode();
-    test_url_value_encode();
+    llist_test();
+    dns_test();
+    platform_test();
+    url_value_decode_test();
+    url_value_encode_test();
+    url_decode_test();
+    connection_test();
     return 0;
 }

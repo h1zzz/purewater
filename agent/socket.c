@@ -143,13 +143,13 @@ again:
     return 0;
 }
 
-int socket_read(struct socket_handler *handler, void *buf, int size)
+int socket_read(struct socket_handler *handler, void *buf, size_t size)
 {
     int nread;
 
 again:
 #ifdef _WIN32
-    nread = recv(handler->fd, buf, size, 0);
+    nread = recv(handler->fd, buf, (int)size, 0);
     if (nread == SOCKET_ERROR) {
         if (WSAGetLastError() == WSAEINTR)
             goto again;
@@ -157,7 +157,7 @@ again:
         return -1;
     }
 #else  /* No defined _WIN32 */
-    nread = recv(handler->fd, buf, (size_t)size, MSG_NOSIGNAL);
+    nread = recv(handler->fd, buf, size, MSG_NOSIGNAL);
     if (nread == -1) {
         if (errno == EINTR)
             goto again;
@@ -168,13 +168,13 @@ again:
     return nread;
 }
 
-int socket_write(struct socket_handler *handler, const void *data, int n)
+int socket_write(struct socket_handler *handler, const void *data, size_t n)
 {
     int nwrite;
 
 again:
 #ifdef _WIN32
-    nwrite = send(handler->fd, data, n, 0);
+    nwrite = send(handler->fd, data, (int)n, 0);
     if (nwrite == SOCKET_ERROR) {
         if (WSAGetLastError() == WSAEINTR)
             goto again;
@@ -182,7 +182,7 @@ again:
         return -1;
     }
 #else  /* No defined _WIN32 */
-    nwrite = send(handler->fd, data, (size_t)n, MSG_NOSIGNAL);
+    nwrite = send(handler->fd, data, n, MSG_NOSIGNAL);
     if (nwrite == -1) {
         if (errno == EINTR)
             goto again;

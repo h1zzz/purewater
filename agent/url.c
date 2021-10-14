@@ -171,10 +171,9 @@ int url_value_del(struct llist *list, const char *name)
 int url_value_encode(struct llist *list, char **ret)
 {
     size_t size = 512, len = 0, n;
-    char *str, *tmp;
+    char *str, *tmp, *s;
     struct lnode *ptr;
     struct url_value_node *node;
-    uint8_t *p;
 
     str = malloc(size);
     if (!str)
@@ -197,23 +196,44 @@ int url_value_encode(struct llist *list, char **ret)
             return -1;
         }
 
-        p = (uint8_t *)node->name;
-        while (*p)
-            str[len++] = *p++;
+        s = node->name;
+        while (*s) {
+            if (len >= size) {
+                free(str);
+                return -1;
+            }
+            str[len++] = *s++;
+        }
 
+        if (len >= size) {
+            free(str);
+            return -1;
+        }
         str[len++] = '=';
 
-        p = (uint8_t *)node->value;
-        while (*p) {
-            if (isalnum(*p) || '-' == *p || '.' == *p || '_' == *p ||
-                '~' == *p) {
-                str[len++] = *p++;
+        s = node->value;
+        while (*s) {
+            if (isalnum(*s) || '-' == *s || '.' == *s || '_' == *s ||
+                '~' == *s) {
+                if (len >= size) {
+                    free(str);
+                    return -1;
+                }
+                str[len++] = *s++;
             } else {
-                len += snprintf(str + len, size - len, "%%%02X", *p);
-                p++;
+                if (len + 3 >= size) {
+                    free(str);
+                    return -1;
+                }
+                len += snprintf(str + len, size - len, "%%%02X", *s);
+                s++;
             }
         }
 
+        if (len >= size) {
+            free(str);
+            return -1;
+        }
         str[len++] = '&';
     }
 

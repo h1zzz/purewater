@@ -94,14 +94,14 @@ int connection_write(struct connection *conn, const void *data, size_t n)
 {
     if (conn->tls)
         return mbedtls_ssl_write(&conn->ssl, data, n);
-    return socket_write(&conn->handler, data, (int)n);
+    return socket_write(&conn->handler, data, n);
 }
 
 int connection_read(struct connection *conn, void *buf, size_t size)
 {
     if (conn->tls)
         return mbedtls_ssl_read(&conn->ssl, buf, size);
-    return socket_read(&conn->handler, buf, (int)size);
+    return socket_read(&conn->handler, buf, size);
 }
 
 int connection_tls_handshake(struct connection *conn)
@@ -181,12 +181,12 @@ void connection_close(struct connection *conn)
 static int connection_read_mbedtls_cb(void *ctx, unsigned char *buf, size_t len)
 {
     struct connection *conn = ctx;
-    return socket_read(&conn->handler, buf, (int)len);
+    return socket_read(&conn->handler, buf, len);
 }
 
 static int connection_write_mbedtls_cb(void *ctx, const unsigned char *buf,
                                        size_t len)
 {
     struct connection *conn = ctx;
-    return socket_write(&conn->handler, buf, (int)len);
+    return socket_write(&conn->handler, buf, len);
 }
