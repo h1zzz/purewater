@@ -14,6 +14,7 @@
 #include "llist.h"
 #include "platform.h"
 #include "url.h"
+#include "socks.h"
 
 struct node {
     struct lnode _node;
@@ -190,6 +191,13 @@ void connection_test(void)
     char *request;
     const char *host = "www.h1zzz.net";
     uint16_t port = 443;
+    // struct proxy proxy;
+
+    // memset(&proxy, 0, sizeof(proxy));
+
+    // proxy.handshake = socks5_handshake;
+    // proxy.host = "10.0.0.6";
+    // proxy.port = 7890;
 
     conn = connection_open(host, port, NULL);
     if (!conn) {

@@ -11,6 +11,7 @@
 #include "dns.h"
 #include "llist.h"
 #include "platform.h"
+#include "util.h"
 
 static int connection_read_mbedtls_cb(void *ctx, unsigned char *buf,
                                       size_t len);
@@ -18,12 +19,9 @@ static int connection_write_mbedtls_cb(void *ctx, const unsigned char *buf,
                                        size_t len);
 
 struct connection *connection_open(const char *host, uint16_t port,
-                                   const struct proxy_config *proxy)
+                                   const struct proxy *proxy)
 {
     struct connection *conn;
-    struct dns_node hints, *dns_node;
-    struct llist dns;
-    struct lnode *node;
     int ret;
 
     conn = calloc(1, sizeof(struct connection));
@@ -32,59 +30,30 @@ struct connection *connection_open(const char *host, uint16_t port,
         return NULL;
     }
 
-    memset(&hints, 0, sizeof(struct dns_node));
-
-    hints.family = AF_INET;
-    hints.socktype = SOCK_STREAM;
-    hints.protocol = IPPROTO_IP;
-
-    ret = dns_resolve(&dns, host, port, &hints);
-    if (ret == -1) {
-        debugf("dns_resolve %s error", host);
-        free(conn);
-        return NULL;
-    }
-
-    for (node = dns.head; node; node = node->next) {
-        dns_node = (struct dns_node *)node;
-        ret = socket_open(&conn->handler, hints.family, hints.socktype,
-                          hints.protocol);
-        if (ret == -1) {
-            debug("socket open error");
-            continue;
-        }
-        ret = socket_connect(&conn->handler, dns_node->addr, dns_node->addrlen);
-        if (ret != -1) {
-            memcpy(&conn->addr, dns_node->addr, sizeof(struct sockaddr_in));
-            break;
-        }
-        debugf("connect %s:%d error", host, port);
-        socket_close(&conn->handler);
-    }
-
-    dns_destroy(&dns);
-
-    if (ret == -1) {
-        free(conn);
-        return NULL;
-    }
-
     conn->hostname = xstrdup(host);
     if (!conn->hostname) {
         debugf("xstrdup %s error", host);
-        socket_close(&conn->handler);
         free(conn);
         return NULL;
     }
 
     if (proxy) {
-        ret = proxy->proxy_handshake(&conn->handler, proxy);
+        ret = proxy->handshake(&conn->handler, host, port, proxy);
         if (ret == -1) {
-            debugf("proxy error %s:%d %s:%s", proxy->host, proxy->port,
-                   proxy->user, proxy->passwd);
-            connection_close(conn);
+            debugf("proxy handshake error %s:%d %s:%s", proxy->host,
+                   proxy->port, proxy->user, proxy->passwd);
+            free(conn->hostname);
+            free(conn);
             return NULL;
         }
+        return conn;
+    }
+
+    ret = util_connect_tcp(&conn->handler, host, port);
+    if (ret == -1) {
+        free(conn->hostname);
+        free(conn);
+        return NULL;
     }
 
     return conn;

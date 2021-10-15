@@ -38,8 +38,11 @@ set(HEADERS
     http.h
     llist.h
     platform.h
+    proxy.h
     socket.h
+    socks.h
     url.h
+    util.h
 )
 
 set(SOURCES
@@ -49,7 +52,9 @@ set(SOURCES
     llist.c
     platform.c
     socket.c
+    socks.c
     url.c
+    util.c
 )
 
 set(LIBS mbedtls)

@@ -225,7 +225,7 @@ int url_value_encode(struct llist *list, char **ret)
                     free(str);
                     return -1;
                 }
-                len += snprintf(str + len, size - len, "%%%02X", *s);
+                len += snprintf(str + len, size - len, "%%%02X", *(uint8_t *)s);
                 s++;
             }
         }

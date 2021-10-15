@@ -12,15 +12,7 @@
 #include <mbedtls/ssl.h>
 
 #include "socket.h"
-
-struct proxy_config {
-    int (*proxy_handshake)(struct socket_handler *,
-                           const struct proxy_config *);
-    const char *host;
-    uint16_t port;
-    const char *user;
-    const char *passwd;
-};
+#include "proxy.h"
 
 struct connection {
     struct socket_handler handler;
@@ -35,7 +27,7 @@ struct connection {
 };
 
 struct connection *connection_open(const char *host, uint16_t port,
-                                   const struct proxy_config *proxy);
+                                   const struct proxy *proxy);
 int connection_write(struct connection *conn, const void *data, size_t n);
 int connection_read(struct connection *conn, void *buf, size_t size);
 int connection_tls_handshake(struct connection *conn);
