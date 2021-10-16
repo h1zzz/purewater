@@ -10,6 +10,44 @@
 #include "debug.h"
 #include "llist.h"
 
+int util_is_ipv4(const char *ip)
+{
+    const char *s = ip;
+    size_t i;
+    int n;
+
+    for (i = 0; i < sizeof(struct in_addr); i++) {
+        if (*s == '\0')
+            return 0;
+
+        n = 0;
+
+        while (*s) {
+            if ('0' <= *s && *s <= '9') {
+                n = n * 10 + (*s - '0');
+                s++;
+            } else {
+                s++;
+                break;
+            }
+        }
+
+        if (n > 255)
+            return 0;
+    }
+
+    if (*s != '\0' || i != sizeof(struct in_addr))
+        return 0;
+
+    return 1;
+}
+
+int util_is_ipv6(const char *ip)
+{
+    /* TODO: */
+    return strchr(ip, ':') != NULL;
+}
+
 int util_connect_tcp(struct socket_handler *handler, const char *host,
                      uint16_t port)
 {

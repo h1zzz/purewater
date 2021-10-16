@@ -81,7 +81,7 @@ void dns_test(void)
     hints.socktype = SOCK_STREAM;
     hints.protocol = IPPROTO_IP;
 
-    ret = dns_resolve(&dns, "www.baidu.com", 0, &hints);
+    ret = dns_resolve(&dns, "www.h1zzz.net", 0, &hints);
     if (ret == -1) {
         debug("resolve name error.");
         return;
@@ -191,15 +191,17 @@ void connection_test(void)
     char *request;
     const char *host = "www.h1zzz.net";
     uint16_t port = 443;
-    // struct proxy proxy;
+    struct proxy proxy;
 
-    // memset(&proxy, 0, sizeof(proxy));
+    memset(&proxy, 0, sizeof(proxy));
 
-    // proxy.handshake = socks5_handshake;
-    // proxy.host = "10.0.0.6";
-    // proxy.port = 7890;
+    proxy.handshake = socks5_handshake;
+    proxy.host = "127.0.0.1";
+    proxy.port = 1080;
+    proxy.user = "admin";
+    proxy.passwd = "123456";
 
-    conn = connection_open(host, port, NULL);
+    conn = connection_open(host, port, &proxy);
     if (!conn) {
         debugf("connection_open %s:%d error", host, port);
         return;

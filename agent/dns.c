@@ -15,6 +15,7 @@
 
 #include "debug.h"
 #include "socket.h"
+#include "util.h"
 
 #ifdef _WIN32
 #    pragma comment(lib, "iphlpapi.lib")
@@ -86,8 +87,6 @@ static int parse_answer(struct llist *list, int family,
                         const struct dns_node *hints, uint16_t port, char *data,
                         int n);
 static int dns_read_name(char *data, char *ptr, char *name, size_t size);
-static int is_valid_domain_name(const char *domain);
-static int is_ipv4(const char *ip);
 
 static const char *defnameserv[] = {"8.8.8.8", "9.9.9.9", "1.1.1.1", "1.2.4.8"};
 
@@ -113,7 +112,7 @@ int dns_resolve(struct llist *list, const char *name, uint16_t port,
     /* If it is an IP address, it is directly resolved to an address. */
     switch (family) {
     case AF_INET:
-        if (!is_ipv4(name))
+        if (!util_is_ipv4(name))
             break;
 
         si4 = calloc(1, sizeof(struct sockaddr_in));
@@ -140,7 +139,7 @@ int dns_resolve(struct llist *list, const char *name, uint16_t port,
         llist_insert_next(list, list->tail, (struct lnode *)dns_node);
         return 0;
     case AF_INET6:
-        if (!is_valid_domain_name(name))
+        if (!util_is_ipv6(name))
             break;
         si6 = calloc(1, sizeof(struct sockaddr_in6));
         if (!si6) {
@@ -389,7 +388,7 @@ static int nameserv_add_local_dns(struct llist *list)
     ipAddr = &fInfo->DnsServerList;
 
     while (ipAddr) {
-        if (!is_ipv4(ipAddr->IpAddress.String)) {
+        if (!util_is_ipv4(ipAddr->IpAddress.String)) {
             debug("Currently only supports the use of IPv4 DNS servers");
             ipAddr = ipAddr->Next;
             continue;
@@ -460,7 +459,7 @@ static int nameserv_add_local_dns(struct llist *list)
 
         ptr = &buf[11];
 
-        if (!is_ipv4(ptr)) {
+        if (!util_is_ipv4(ptr)) {
             debug("Currently only supports the use of IPv4 DNS servers");
             continue;
         }
@@ -663,9 +662,9 @@ static int parse_answer(struct llist *list, int family,
 
 static int dns_read_name(char *data, char *ptr, char *name, size_t size)
 {
-    unsigned int offset, pos = 0, n, jumped = 0, i = 0;
+    unsigned int offset, count = 1, n, jumped = 0, i = 0;
 
-    while (ptr[pos]) {
+    while (*ptr) {
 
         if (*(uint8_t *)ptr >= 0xc0) {
             offset = ntohs(*(uint16_t *)ptr) - 0xc000;
@@ -673,64 +672,25 @@ static int dns_read_name(char *data, char *ptr, char *name, size_t size)
             jumped = 1;
         }
 
-        n = ptr[pos++];
+        n = *ptr++;
+
+        if (!jumped)
+            count += n + 1;
 
         while (n--) {
             if (name && i < size)
-                name[i++] = ptr[pos];
-            pos++;
+                name[i++] = *ptr++;
         }
 
         if (name && i < size)
             name[i++] = '.';
     }
 
-    pos++; /* skip '\0' */
+    if (jumped)
+        count++;
 
     if (name && i < size)
         name[i - 1] = '\0';
 
-    return jumped ? 2 : pos;
-}
-
-int is_valid_domain_name(const char *domain)
-{
-    while (*domain) {
-        if (!isalnum(*domain) && *domain != '-')
-            return 0;
-        domain++;
-    }
-    return 1;
-}
-
-static int is_ipv4(const char *ip)
-{
-    const char *s = ip;
-    size_t i;
-    int n;
-
-    for (i = 0; i < sizeof(struct in_addr); i++) {
-        if (*s == '\0')
-            return 0;
-
-        n = 0;
-
-        while (*s) {
-            if ('0' <= *s && *s <= '9') {
-                n = n * 10 + (*s - '0');
-                s++;
-            } else {
-                s++;
-                break;
-            }
-        }
-
-        if (n > 255)
-            return 0;
-    }
-
-    if (*s != '\0' || i != sizeof(struct in_addr))
-        return 0;
-
-    return 1;
+    return count;
 }
