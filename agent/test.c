@@ -197,9 +197,9 @@ void connection_test(void)
 
     proxy.handshake = socks5_handshake;
     proxy.host = "127.0.0.1";
-    proxy.port = 1080;
-    proxy.user = "admin";
-    proxy.passwd = "123456";
+    proxy.port = 7890;
+    /* proxy.user = "admin";
+    proxy.passwd = "123456"; */
 
     conn = connection_open(host, port, &proxy);
     if (!conn) {
@@ -218,6 +218,7 @@ void connection_test(void)
 
     ret = connection_write(conn, request, n);
     printf("ret: %d\n", ret);
+    free(request);
 
     ret = connection_read(conn, buf, sizeof(buf));
     printf("ret: %d\n", ret);

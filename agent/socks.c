@@ -11,6 +11,7 @@
 #include "llist.h"
 #include "util.h"
 
+/* socks5 client */
 int socks5_handshake(struct socket_handler *handler, const char *host,
                      uint16_t port, const struct proxy *proxy)
 {
@@ -54,24 +55,29 @@ int socks5_handshake(struct socket_handler *handler, const char *host,
         /* Username/Password Authentication for SOCKS V5 */
         n = 0;
         buf[n++] = 0x05;
+
         len = strlen(proxy->user);
         buf[n++] = len;
         memcpy(buf + n, proxy->user, len);
         n += len;
+
         len = strlen(proxy->passwd);
         buf[n++] = len;
         memcpy(buf + n, proxy->passwd, len);
         n += len;
+
         ret = socket_write(handler, buf, n);
         if (ret == -1) {
             debug("socket_write error");
             goto err;
         }
+
         ret = socket_read(handler, buf, sizeof(buf));
         if (ret == -1) {
             debug("socket_read error");
             goto err;
         }
+
         if (buf[1] != 0x00) {
             debug("authentication failure");
             goto err;
