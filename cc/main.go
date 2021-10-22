@@ -42,6 +42,7 @@ func main() {
 			}
 			logrus.Fatal(err)
 		}
+		logrus.Info("Init mysql database success.")
 		break
 	}
 
