@@ -15,6 +15,7 @@
 #include "platform.h"
 #include "url.h"
 #include "socks.h"
+#include "buffer.h"
 
 struct node {
     struct lnode _node;
@@ -227,6 +228,17 @@ void connection_test(void)
     connection_close(conn);
 }
 
+void buffer_test(void)
+{
+    struct buffer buf;
+
+    buffer_init(&buf);
+    buffer_append(&buf, "hello world", 11);
+    buffer_appendf(&buf, ", name: %s", "h1zzz");
+    debugf("size: %d, len: %d, str: %s", buf.size, buf.len, buf.ptr);
+    buffer_destroy(&buf);
+}
+
 int main(void)
 {
     llist_test();
@@ -236,5 +248,6 @@ int main(void)
     url_value_encode_test();
     url_decode_test();
     connection_test();
+    buffer_test();
     return 0;
 }
