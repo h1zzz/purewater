@@ -47,10 +47,10 @@ services:
     networks:
       - backend
 
-  cc:
-    container_name: cc
+  cnc:
+    container_name: cnc
     build: .
-    image: cc
+    image: cnc
     restart: always
     depends_on:
       - mysql
@@ -81,7 +81,7 @@ services:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/cert:/etc/nginx/cert:ro
     depends_on:
-      - cc
+      - cnc
     ports:
       - 443:443 # nginx/nginx.conf listen 443 ssl;
     networks:
