@@ -74,5 +74,5 @@ function(purewater_build)
     target_link_libraries(${PB_TARGET} PRIVATE ${LIBS} ${PB_LIBS})
 endfunction()
 
-purewater_build(TARGET purewater SOURCES main.c)
+purewater_build(TARGET bot SOURCES main.c)
 purewater_build(TARGET test SOURCES test.c)
