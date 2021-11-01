@@ -16,6 +16,7 @@
 #include "url.h"
 #include "socks.h"
 #include "buffer.h"
+#include "http.h"
 
 struct node {
     struct lnode _node;
@@ -235,19 +236,40 @@ void buffer_test(void)
     buffer_init(&buf);
     buffer_append(&buf, "hello world", 11);
     buffer_appendf(&buf, ", name: %s", "h1zzz");
-    debugf("size: %d, len: %d, str: %s", buf.size, buf.len, buf.ptr);
+    printf("size: %d, len: %d, str: %s", buf.size, buf.len, buf.ptr);
     buffer_destroy(&buf);
+}
+
+void http_header_node_test(void)
+{
+    struct http_header_node *node;
+    struct lnode *ptr;
+    struct llist headers;
+
+    http_header_init(&headers);
+
+    http_header_add(&headers, "User-Agent", "purewater");
+    http_header_add(&headers, "Host", "h1zzz.net");
+    http_header_add(&headers, "Cookie", "test=test");
+
+    for (ptr = headers.head; ptr; ptr = ptr->next) {
+        node = (struct http_header_node *)ptr;
+        printf("%s: %s\n", node->key, node->val);
+    }
+
+    http_header_destroy(&headers);
 }
 
 int main(void)
 {
-    llist_test();
-    dns_test();
-    platform_test();
-    url_value_decode_test();
-    url_value_encode_test();
-    url_decode_test();
-    connection_test();
-    buffer_test();
+    /* llist_test(); */
+    /* dns_test(); */
+    /* platform_test(); */
+    /* url_value_decode_test(); */
+    /* url_value_encode_test(); */
+    /* url_decode_test(); */
+    /* connection_test(); */
+    /* buffer_test(); */
+    http_header_node_test();
     return 0;
 }

@@ -8,6 +8,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#include "debug.h"
+
 #ifdef _WIN32
 #    define PATH_SEPARATOR '\\'
 #else /* No defined _WIN32 */
