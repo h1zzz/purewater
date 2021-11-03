@@ -36,13 +36,11 @@ set(HEADERS
     connection.h
     debug.h
     dns.h
-    http.h
     llist.h
     platform.h
     proxy.h
     socket.h
     socks.h
-    url.h
     util.h
 )
 
@@ -50,12 +48,10 @@ set(SOURCES
     buffer.c
     connection.c
     dns.c
-    http.c
     llist.c
     platform.c
     socket.c
     socks.c
-    url.c
     util.c
 )
 

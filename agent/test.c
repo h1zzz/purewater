@@ -13,10 +13,8 @@
 #include "dns.h"
 #include "llist.h"
 #include "platform.h"
-#include "url.h"
 #include "socks.h"
 #include "buffer.h"
-#include "http.h"
 
 struct node {
     struct lnode _node;
@@ -133,58 +131,6 @@ void platform_test(void)
     printf("%s\n", str);
 }
 
-void url_value_encode_test(void)
-{
-    struct llist list;
-    char *str;
-
-    if (url_value_init(&list, NULL) == -1)
-        return;
-
-    url_value_set(&list, "name", "h1zzz");
-    url_value_set(&list, "age", "19");
-    url_value_set(&list, "sex", "1");
-
-    if (url_value_encode(&list, &str) != -1) {
-        printf("%s\n", str);
-        free(str);
-    }
-
-    url_value_destroy(&list);
-}
-
-void url_value_decode_test(void)
-{
-    /* clang-format off */
-    static const char *s = "sl=en&tl=zh-CN&text=hello%20world%20%E4%BD%A0%E5%A5%BD%5%95%8A&op=translate&name=h1zzz";
-    /* clang-format on */
-    struct llist list;
-    char *str;
-
-    if (url_value_init(&list, s) == -1)
-        return;
-
-    url_value_del(&list, "sl");
-
-    if (url_value_encode(&list, &str) != -1) {
-        printf("%s\n", str);
-        free(str);
-    }
-    url_value_destroy(&list);
-}
-
-void url_decode_test(void)
-{
-    struct url url;
-
-    url_init(&url);
-    /* url_parse(&url, "https://admin:123456@[::]:443/a.jsp?k=v&a=z#h1"); */
-    url_parse(&url, "https://admin:123456@h1zzz.net:443/a.jsp?k=v&a=z#h1");
-    printf("%s://%s:%s@%s:%d/%s?%s#%s\n", url.scheme, url.user, url.passwd,
-           url.host, url.port_num, url.path, url.query, url.fragment);
-    url_destroy(&url);
-}
-
 void connection_test(void)
 {
     struct connection *conn;
@@ -240,36 +186,12 @@ void buffer_test(void)
     buffer_destroy(&buf);
 }
 
-void http_header_node_test(void)
-{
-    struct http_header_node *node;
-    struct lnode *ptr;
-    struct llist headers;
-
-    http_header_init(&headers);
-
-    http_header_add(&headers, "User-Agent", "purewater");
-    http_header_add(&headers, "Host", "h1zzz.net");
-    http_header_add(&headers, "Cookie", "test=test");
-
-    for (ptr = headers.head; ptr; ptr = ptr->next) {
-        node = (struct http_header_node *)ptr;
-        printf("%s: %s\n", node->key, node->val);
-    }
-
-    http_header_destroy(&headers);
-}
-
 int main(void)
 {
     /* llist_test(); */
     /* dns_test(); */
     /* platform_test(); */
-    /* url_value_decode_test(); */
-    /* url_value_encode_test(); */
-    /* url_decode_test(); */
-    /* connection_test(); */
+    connection_test();
     /* buffer_test(); */
-    http_header_node_test();
     return 0;
 }
