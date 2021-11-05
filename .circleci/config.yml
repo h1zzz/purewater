@@ -1,0 +1,21 @@
+# MIT License Copyright (c) 2021, h1zzz
+
+version: 2.1
+
+jobs:
+  build:
+    working_directory: /go/src/github.com/h1zzz/purewater/cc
+    
+    docker:
+      - image: golang:1.17.2-alpine3.14
+
+    steps:
+      - checkout
+      - run:
+          name: Run tests
+          command: |
+            apk add --no-cache openssl
+            openssl genrsa -out key.pem 2048
+            openssl req -new -x509 -days 3650 -key key.pem -out cert.pem -subj "/C=US/ST= /L= /O= /OU= /CN= /emailAddress= "
+            go mod download
+            go run .
