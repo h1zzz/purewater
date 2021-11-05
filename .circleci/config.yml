@@ -29,13 +29,13 @@ jobs:
           name: Installation package
           command: |
             apt update -y
-            apt install -y --fix-missing git cmake build-essential wget
+            apt install -y --fix-missing git cmake build-essential
       - run:
           name: Initialization
           command: |
             git submodule update --init
       - run:
-          name: Build debug agent
+          name: Compile x86/64 of Debug type
           command: |
             cd agent
             rm -rf build
@@ -44,7 +44,7 @@ jobs:
             cmake -DCMAKE_BUILD_TYPE="Debug" ..
             make
       - run:
-          name: Build release agent
+          name: Compile x86/64 of Release type
           command: |
             cd agent
             rm -rf build

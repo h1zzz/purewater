@@ -228,7 +228,7 @@ static int nameserv_add_local_dns(struct llist *list)
     ipAddr = &fInfo->DnsServerList;
 
     while (ipAddr) {
-        if (!util_is_ipv4(ipAddr->IpAddress.String)) {
+        if (!check_is_ipv4(ipAddr->IpAddress.String)) {
             debug("Currently only supports the use of IPv4 DNS servers");
             ipAddr = ipAddr->Next;
             continue;
