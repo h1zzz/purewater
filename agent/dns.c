@@ -543,22 +543,26 @@ int dns_resolve(struct llist *list, const char *name)
             perror("socket_open");
             continue;
         }
+
         /* TODO: supported IPv6 name server. */
         ret = socket_connect(&handler, nameserv->addr, nameserv->addrlen);
         if (ret == -1) {
             debug("socket_connect error");
             goto cleanup;
         }
+
         ret = send_question(&handler, name);
         if (ret == -1) {
             debug("send question error");
             goto cleanup;
         }
+
         ret = socket_read(&handler, buf, sizeof(buf));
         if (ret == -1) {
             debug("recv answer error");
             goto cleanup;
         }
+
         ret = parse_answer(list, buf, ret);
         if (ret == -1) {
             debug("parse answer error");
