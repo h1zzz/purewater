@@ -35,6 +35,7 @@ set(HEADERS
     debug.h
     dns.h
     llist.h
+    net.h
     socket.h
     socks.h
     util.h
@@ -44,6 +45,7 @@ set(SOURCES
     dns.c
     llist.c
     main.c
+    net.c
     socket.c
     socks.c
     util.c

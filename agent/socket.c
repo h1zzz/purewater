@@ -38,7 +38,7 @@ static int socket_init(void)
 }
 #endif /* _WIN32 */
 
-int socket_open(struct socket_handler *handler, int af, int type, int protocol)
+int socket_open(struct socket_handle *sock, int af, int type, int protocol)
 {
 #ifdef _WIN32
     if (socket_init() == -1) {
@@ -46,14 +46,14 @@ int socket_open(struct socket_handler *handler, int af, int type, int protocol)
         return -1;
     }
 #endif /* _WIN32 */
-    handler->fd = socket(af, type, protocol);
+    sock->fd = socket(af, type, protocol);
 #ifdef _WIN32
-    if (handler->fd == INVALID_SOCKET) {
+    if (sock->fd == INVALID_SOCKET) {
         debug("create socket error");
         return -1;
     }
 #else  /* No defined _WIN32 */
-    if (handler->fd == -1) {
+    if (sock->fd == -1) {
         debug("create socket error");
         return -1;
     }
@@ -61,13 +61,13 @@ int socket_open(struct socket_handler *handler, int af, int type, int protocol)
     return 0;
 }
 
-int socket_connect(struct socket_handler *handler, const struct sockaddr *addr,
+int socket_connect(struct socket_handle *sock, const struct sockaddr *addr,
                    socklen_t addrlen)
 {
     int ret;
 
 again:
-    ret = connect(handler->fd, addr, addrlen);
+    ret = connect(sock->fd, addr, addrlen);
 #ifdef _WIN32
     if (ret == SOCKET_ERROR) {
         if (WSAGetLastError() == WSAEINTR)
@@ -86,12 +86,12 @@ again:
     return 0;
 }
 
-int socket_listen(struct socket_handler *handler, const struct sockaddr *addr,
+int socket_listen(struct socket_handle *sock, const struct sockaddr *addr,
                   socklen_t addrlen)
 {
     int ret;
 
-    ret = bind(handler->fd, addr, addrlen);
+    ret = bind(sock->fd, addr, addrlen);
 #ifdef _WIN32
     if (ret == SOCKET_ERROR) {
         debug("bind address error");
@@ -104,7 +104,7 @@ int socket_listen(struct socket_handler *handler, const struct sockaddr *addr,
     }
 #endif /* _WIN32 */
 
-    ret = listen(handler->fd, SOMAXCONN);
+    ret = listen(sock->fd, SOMAXCONN);
 #ifdef _WIN32
     if (ret == SOCKET_ERROR) {
         debug("listen error");
@@ -120,11 +120,11 @@ int socket_listen(struct socket_handler *handler, const struct sockaddr *addr,
     return 0;
 }
 
-int socket_accept(struct socket_handler *handler, struct socket_handler *conn,
+int socket_accept(struct socket_handle *sock, struct socket_handle *conn,
                   struct sockaddr *addr, socklen_t *addrlen)
 {
 again:
-    conn->fd = accept(handler->fd, addr, addrlen);
+    conn->fd = accept(sock->fd, addr, addrlen);
 #ifdef _WIN32
     if (conn->fd == INVALID_SOCKET) {
         if (WSAGetLastError() == WSAEINTR)
@@ -143,13 +143,13 @@ again:
     return 0;
 }
 
-int socket_read(struct socket_handler *handler, void *buf, size_t size)
+int socket_read(struct socket_handle *sock, void *buf, size_t size)
 {
     int nread;
 
 again:
 #ifdef _WIN32
-    nread = recv(handler->fd, buf, (int)size, 0);
+    nread = recv(sock->fd, buf, (int)size, 0);
     if (nread == SOCKET_ERROR) {
         if (WSAGetLastError() == WSAEINTR)
             goto again;
@@ -157,7 +157,7 @@ again:
         return -1;
     }
 #else  /* No defined _WIN32 */
-    nread = recv(handler->fd, buf, size, MSG_NOSIGNAL);
+    nread = recv(sock->fd, buf, size, MSG_NOSIGNAL);
     if (nread == -1) {
         if (errno == EINTR)
             goto again;
@@ -168,13 +168,13 @@ again:
     return nread;
 }
 
-int socket_write(struct socket_handler *handler, const void *data, size_t n)
+int socket_write(struct socket_handle *sock, const void *data, size_t n)
 {
     int nwrite;
 
 again:
 #ifdef _WIN32
-    nwrite = send(handler->fd, data, (int)n, 0);
+    nwrite = send(sock->fd, data, (int)n, 0);
     if (nwrite == SOCKET_ERROR) {
         if (WSAGetLastError() == WSAEINTR)
             goto again;
@@ -182,7 +182,7 @@ again:
         return -1;
     }
 #else  /* No defined _WIN32 */
-    nwrite = send(handler->fd, data, n, MSG_NOSIGNAL);
+    nwrite = send(sock->fd, data, n, MSG_NOSIGNAL);
     if (nwrite == -1) {
         if (errno == EINTR)
             goto again;
@@ -193,22 +193,22 @@ again:
     return nwrite;
 }
 
-int socket_set_blocking(struct socket_handler *handler)
+int socket_set_blocking(struct socket_handle *sock)
 {
 #ifdef _WIN32
     u_long opt = 0;
-    if (ioctlsocket(handler->fd, FIONBIO, &opt) == SOCKET_ERROR) {
+    if (ioctlsocket(sock->fd, FIONBIO, &opt) == SOCKET_ERROR) {
         debug("set block error");
         return -1;
     }
 #else  /* No define _WIN32 */
-    int flags = fcntl(handler->fd, F_GETFL);
+    int flags = fcntl(sock->fd, F_GETFL);
     if (flags == -1) {
         debug("set block GETFL error");
         return -1;
     }
 
-    if (fcntl(handler->fd, F_SETFL, flags & ~O_NONBLOCK) == -1) {
+    if (fcntl(sock->fd, F_SETFL, flags & ~O_NONBLOCK) == -1) {
         debug("set block SETFL error");
         return -1;
     }
@@ -216,22 +216,22 @@ int socket_set_blocking(struct socket_handler *handler)
     return 0;
 }
 
-int socket_set_nonblocking(struct socket_handler *handler)
+int socket_set_nonblocking(struct socket_handle *sock)
 {
 #ifdef _WIN32
     u_long opt = 1;
-    if (ioctlsocket(handler->fd, FIONBIO, &opt) == SOCKET_ERROR) {
+    if (ioctlsocket(sock->fd, FIONBIO, &opt) == SOCKET_ERROR) {
         debug("set nonblock error");
         return -1;
     }
 #else  /* No define _WIN32 */
-    int flags = fcntl(handler->fd, F_GETFL);
+    int flags = fcntl(sock->fd, F_GETFL);
     if (flags == -1) {
         debug("set nonblock GETFL error");
         return -1;
     }
 
-    if (fcntl(handler->fd, F_SETFL, flags | O_NONBLOCK) == -1) {
+    if (fcntl(sock->fd, F_SETFL, flags | O_NONBLOCK) == -1) {
         debug("set nonblock SETFL error");
         return -1;
     }
@@ -239,20 +239,20 @@ int socket_set_nonblocking(struct socket_handler *handler)
     return 0;
 }
 
-void socket_shutdown(struct socket_handler *handler)
+void socket_shutdown(struct socket_handle *sock)
 {
 #ifdef _WIN32
-    shutdown(handler->fd, SD_BOTH);
+    shutdown(sock->fd, SD_BOTH);
 #else  /* No defined _WIN32 */
-    shutdown(handler->fd, SHUT_RDWR);
+    shutdown(sock->fd, SHUT_RDWR);
 #endif /* _WIN32 */
 }
 
-void socket_close(struct socket_handler *handler)
+void socket_close(struct socket_handle *sock)
 {
 #ifdef _WIN32
-    closesocket(handler->fd);
+    closesocket(sock->fd);
 #else  /* No defined _WIN32 */
-    close(handler->fd);
+    close(sock->fd);
 #endif /* _WIN32 */
 }

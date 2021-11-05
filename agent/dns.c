@@ -121,7 +121,7 @@ static void format_dns_name(char *name)
     }
 }
 
-static int send_question(struct socket_handler *handler, const char *name)
+static int send_question(struct socket_handle *sock, const char *name)
 {
     struct dns_header *header;
     struct dns_question *question;
@@ -164,7 +164,7 @@ static int send_question(struct socket_handler *handler, const char *name)
     question->qtype = htons(TYPE_A);
     question->qclass = htons(CLASS_IN);
 
-    if (socket_write(handler, buf, (int)n) == -1) {
+    if (socket_write(sock, buf, (int)n) == -1) {
         debug("send dns question error");
         return -1;
     }
@@ -492,7 +492,7 @@ static int parse_answer(struct llist *list, char *data, int n)
 
 int dns_resolve(struct llist *list, const char *name)
 {
-    struct socket_handler handler;
+    struct socket_handle sock;
     int ret;
     struct llist nslist;
     struct lnode *node;
@@ -537,7 +537,7 @@ int dns_resolve(struct llist *list, const char *name)
 
     for (node = nslist.head; node; node = node->next) {
         nameserv = (struct nameserv_node *)node;
-        ret = socket_open(&handler, PF_INET, SOCK_DGRAM, IPPROTO_IP);
+        ret = socket_open(&sock, PF_INET, SOCK_DGRAM, IPPROTO_IP);
         if (ret == -1) {
             debug("open socket error");
             perror("socket_open");
@@ -545,19 +545,19 @@ int dns_resolve(struct llist *list, const char *name)
         }
 
         /* TODO: supported IPv6 name server. */
-        ret = socket_connect(&handler, nameserv->addr, nameserv->addrlen);
+        ret = socket_connect(&sock, nameserv->addr, nameserv->addrlen);
         if (ret == -1) {
             debug("socket_connect error");
             goto cleanup;
         }
 
-        ret = send_question(&handler, name);
+        ret = send_question(&sock, name);
         if (ret == -1) {
             debug("send question error");
             goto cleanup;
         }
 
-        ret = socket_read(&handler, buf, sizeof(buf));
+        ret = socket_read(&sock, buf, sizeof(buf));
         if (ret == -1) {
             debug("recv answer error");
             goto cleanup;
@@ -569,7 +569,7 @@ int dns_resolve(struct llist *list, const char *name)
             goto cleanup;
         }
     cleanup:
-        socket_close(&handler);
+        socket_close(&sock);
         if (ret != -1)
             break;
     }
