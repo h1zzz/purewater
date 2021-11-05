@@ -36,6 +36,7 @@ jobs:
             cd build
             cmake -DCMAKE_BUILD_TYPE="Debug" ..
             make
+            rm -rf *
             cmake -DCMAKE_BUILD_TYPE="Release" ..
             make
 
