@@ -32,24 +32,18 @@ add_definitions(-DMBEDTLS_CONFIG_FILE="config.h")
 add_subdirectory(${PROJECT_SOURCE_DIR}/mbedtls/library)
 
 set(HEADERS
-    buffer.h
-    connection.h
     debug.h
     dns.h
     llist.h
-    platform.h
-    proxy.h
     socket.h
     socks.h
     util.h
 )
 
 set(SOURCES
-    buffer.c
-    connection.c
     dns.c
     llist.c
-    platform.c
+    main.c
     socket.c
     socks.c
     util.c
@@ -61,14 +55,5 @@ if(WIN32)
     list(APPEND LIBS ws2_32)
 endif()
 
-function(purewater_build)
-    set(options)
-    set(oneValueArgs TARGET)
-    set(multiValueArgs SOURCES)
-    cmake_parse_arguments(PB "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
-    add_executable(${PB_TARGET} ${HEADERS} ${SOURCES} ${PB_SOURCES})
-    target_link_libraries(${PB_TARGET} PRIVATE ${LIBS} ${PB_LIBS})
-endfunction()
-
-purewater_build(TARGET bot SOURCES main.c)
-purewater_build(TARGET test SOURCES test.c)
+add_executable(agent ${HEADERS} ${SOURCES})
+target_link_libraries(agent PRIVATE ${LIBS})

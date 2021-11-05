@@ -22,72 +22,32 @@ services:
     networks:
     - backend
 
-  # redis:
-  #   container_name: redis
-  #   image: redis:alpine
-  #   restart: always
-  #   volumes:
-  #     - /etc/localtime:/etc/localtime:ro
-  #     - ${DATA_DIR}/redis:/data
-  #   networks:
-  #     - backend
-
-  # minio:
-  #   container_name: minio
-  #   image: minio/minio
-  #   command:
-  #     server /data --console-address ":9001"
-  #   environment:
-  #     MINIO_ROOT_USER: ${MINIO_ROOT_USER}
-  #     MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
-  #   restart: always
-  #   volumes:
-  #     - /etc/localtime:/etc/localtime:ro
-  #     - ${DATA_DIR}/minio:/data
-  #   networks:
-  #     - backend
-
   cc:
     container_name: cc
     build: .
     image: cc
     restart: always
+    tty: true
     depends_on:
       - mysql
-      - redis
-      - minio
+    ports:
+      - "443:443"
+      - "2222:22"
     environment:
-      DOCKER_COMPOSE: "true"
-      LISTEN_ADDR: ${LISTEN_ADDR}
+      SERVER_ADDR: ${SERVER_ADDR}
+      SSH_ADDR: ${SSH_ADDR}
+      SSH_USER: ${SSH_USER}
+      SSH_PASSWORD: ${SSH_PASSWORD}
       MYSQL_ADDR: ${MYSQL_ADDR}
       MYSQL_DATABASE: ${MYSQL_DATABASE}
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
-      # MINIO_ADDR: ${MINIO_ADDR}
-      # MINIO_ROOT_USER: ${MINIO_ROOT_USER}
-      # MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
-      # REDIS_ADDR: ${REDIS_ADDR}
     volumes:
       - /etc/localtime:/etc/localtime:ro
-    networks:
-      - backend
-
-  nginx:
-    container_name: nginx
-    image: nginx:alpine
-    restart: always
-    volumes:
-      - /etc/localtime:/etc/localtime:ro
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx/cert:/etc/nginx/cert:ro
-    depends_on:
-      - cc
-    ports:
-      - 443:443 # nginx/nginx.conf listen 443 ssl;
     networks:
       - backend
 
 networks:
   backend:
-    name: purewater_backend
+    name: backend
     driver: bridge

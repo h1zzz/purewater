@@ -1,43 +1,37 @@
+// MIT License Copyright (c) 2021, h1zzz
+
 package main
 
 import (
+	"log"
 	"os"
 
 	"github.com/joho/godotenv"
 )
 
 var (
-	LISTEN_ADDR         string
-	MYSQL_ROOT_PASSWORD string
-	MYSQL_ADDR          string
-	MYSQL_DATABASE      string
-	MYSQL_USER          string
-	MYSQL_PASSWORD      string
-	// MINIO_ADDR          string
-	// MINIO_ROOT_USER     string
-	// MINIO_ROOT_PASSWORD string
-	// REDIS_ADDR          string
+	serverAddr  = getenv("SERVER_ADDR", ":443")
+	sshAddr     = getenv("SSH_ADDR", ":22")
+	sshUser     = getenv("SSH_USER", "admin")
+	sshPasswd   = getenv("SSH_PASSWORD", "password")
+	mysqlAddr   = getenv("MYSQL_ADDR", "mysql:3306")
+	mysqlDbName = getenv("MYSQL_DATABASE", "cc")
+	mysqlUser   = getenv("MYSQL_USER", "cc")
+	mysqlPasswd = getenv("MYSQL_PASSWORD", "password")
 )
 
-func InitConfig() error {
-	// If it is not started with docker-compose, you need to read the
-	// environment variables from the .env file
-	if os.Getenv("DOCKER_COMPOSE") != "true" {
-		if err := godotenv.Load(); err != nil {
-			return err
+var envLoaded = false
+
+func getenv(key, defval string) string {
+	if !envLoaded {
+		if err := godotenv.Load(); err != nil && !os.IsNotExist(err) {
+			log.Fatal(err)
 		}
+		envLoaded = true
 	}
-
-	LISTEN_ADDR = os.Getenv("LISTEN_ADDR")
-	MYSQL_ROOT_PASSWORD = os.Getenv("MYSQL_ROOT_PASSWORD")
-	MYSQL_ADDR = os.Getenv("MYSQL_ADDR")
-	MYSQL_DATABASE = os.Getenv("MYSQL_DATABASE")
-	MYSQL_USER = os.Getenv("MYSQL_USER")
-	MYSQL_PASSWORD = os.Getenv("MYSQL_PASSWORD")
-	// MINIO_ADDR = os.Getenv("MINIO_ADDR")
-	// MINIO_ROOT_USER = os.Getenv("MINIO_ROOT_USER")
-	// MINIO_ROOT_PASSWORD = os.Getenv("MINIO_ROOT_PASSWORD")
-	// REDIS_ADDR = os.Getenv("REDIS_ADDR")
-
-	return nil
+	val := os.Getenv(key)
+	if val == "" {
+		return defval
+	}
+	return val
 }

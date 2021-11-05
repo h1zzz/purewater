@@ -2,13 +2,25 @@
 
 FROM golang:1.17.2-alpine3.14 as builder
 
+RUN apk upgrade && apk add openssl
+
 WORKDIR /work
+
 COPY . .
+
+RUN openssl genrsa -out key.pem 2048
+RUN openssl req -new -x509 -days 3650 -key key.pem -out cert.pem -subj "/C=US/ST= /L= /O= /OU= /CN= /emailAddress= "
+
 RUN go mod download && go build -ldflags "-s -w" -o cc
 
 FROM alpine:3.14
 
-ENV GIN_MODE="release"
-COPY --from=builder /work/cc /usr/local/bin
-EXPOSE 8080
-ENTRYPOINT [ "cc" ]
+WORKDIR /app
+
+COPY --from=builder /work/cc /app/cc
+COPY --from=builder /work/cert.pem /app/cert.pem
+COPY --from=builder /work/key.pem /app/key.pem
+
+EXPOSE 443 22
+
+ENTRYPOINT [ "/app/cc" ]

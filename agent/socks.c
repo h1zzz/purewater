@@ -11,6 +11,7 @@
 #include "llist.h"
 #include "util.h"
 
+#if 0
 /* socks5 client */
 int socks5_handshake(struct socket_handler *handler, const char *host,
                      uint16_t port, const struct proxy *proxy)
@@ -140,3 +141,4 @@ err:
     socket_close(handler);
     return -1;
 }
+#endif

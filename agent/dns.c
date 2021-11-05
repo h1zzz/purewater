@@ -112,7 +112,7 @@ int dns_resolve(struct llist *list, const char *name, uint16_t port,
     /* If it is an IP address, it is directly resolved to an address. */
     switch (family) {
     case AF_INET:
-        if (!util_is_ipv4(name))
+        if (!check_is_ipv4(name))
             break;
 
         si4 = calloc(1, sizeof(struct sockaddr_in));
@@ -139,7 +139,7 @@ int dns_resolve(struct llist *list, const char *name, uint16_t port,
         llist_insert_next(list, list->tail, (struct lnode *)dns_node);
         return 0;
     case AF_INET6:
-        if (!util_is_ipv6(name))
+        if (!check_is_ipv6(name))
             break;
         si6 = calloc(1, sizeof(struct sockaddr_in6));
         if (!si6) {
@@ -459,7 +459,7 @@ static int nameserv_add_local_dns(struct llist *list)
 
         ptr = &buf[11];
 
-        if (!util_is_ipv4(ptr)) {
+        if (!check_is_ipv4(ptr)) {
             debug("Currently only supports the use of IPv4 DNS servers");
             continue;
         }
