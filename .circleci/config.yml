@@ -4,8 +4,8 @@ version: 2.1
 
 jobs:
   build:
-    working_directory: /go/src/github.com/h1zzz/purewater/cc
-    
+    working_directory: /go/src/github.com/h1zzz/purewater
+
     docker:
       - image: golang:1.17.2-alpine3.14
 
@@ -17,5 +17,6 @@ jobs:
             apk add --no-cache openssl
             openssl genrsa -out key.pem 2048
             openssl req -new -x509 -days 3650 -key key.pem -out cert.pem -subj "/C=US/ST= /L= /O= /OU= /CN= /emailAddress= "
+            cd cc
             go mod download
             go run .
