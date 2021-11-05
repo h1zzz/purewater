@@ -462,8 +462,9 @@ static int parse_answer(struct llist *list, char *data, int n)
 
         do {
             if (class != CLASS_IN || type != TYPE_A) {
-                if (type != TYPE_CNAME)
+                if (type != TYPE_CNAME) {
                     debug("nosuppoted class or type.");
+                }
                 break;
             }
 
