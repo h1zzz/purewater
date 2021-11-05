@@ -21,19 +21,17 @@ func handleDevice(rw http.ResponseWriter, r *http.Request) {
 		log.Print(err)
 		return
 	}
-	// for {
-	// 	t, data, err := conn.ReadMessage()
-	// 	if err != nil {
-	// 		log.Print(err)
-	// 		return
-	// 	}
-	// 	conn.WriteMessage(t, data)
-	// }
-	conn.WriteMessage(websocket.TextMessage, []byte("hello world"))
+	for {
+		t, data, err := conn.ReadMessage()
+		if err != nil {
+			log.Print(err)
+			return
+		}
+		conn.WriteMessage(t, data)
+	}
 }
 
 func serverRun(addr string) error {
 	http.HandleFunc("/ws", handleDevice)
-	// http.HandleFunc("/api", nil)
 	return http.ListenAndServeTLS(addr, "cert.pem", "key.pem", nil)
 }

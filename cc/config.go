@@ -10,7 +10,6 @@ import (
 )
 
 var (
-	serverAddr  = getenv("SERVER_ADDR", ":443")
 	sshAddr     = getenv("SSH_ADDR", ":22")
 	sshUser     = getenv("SSH_USER", "admin")
 	sshPasswd   = getenv("SSH_PASSWORD", "password")

@@ -34,7 +34,6 @@ services:
       - "443:443"
       - "2222:22"
     environment:
-      SERVER_ADDR: ${SERVER_ADDR}
       SSH_ADDR: ${SSH_ADDR}
       SSH_USER: ${SSH_USER}
       SSH_PASSWORD: ${SSH_PASSWORD}
