@@ -11,8 +11,10 @@
 #include "dns.h"
 #include "llist.h"
 #include "util.h"
+#include "proxy.h"
 
-int net_connect(struct net_handle *net, const char *host, uint16_t port)
+int net_connect(struct net_handle *net, const char *host, uint16_t port,
+                const struct proxy *proxy)
 {
     struct lnode *node;
     struct llist dns;
@@ -20,7 +22,7 @@ int net_connect(struct net_handle *net, const char *host, uint16_t port)
 
     memset(net, 0, sizeof(struct net_handle));
 
-    ret = dns_resolve(&dns, host);
+    ret = dns_resolve(&dns, proxy ? proxy->host : host);
     if (ret == -1) {
         debugf("resolve %s error", host);
         return -1;
@@ -29,7 +31,7 @@ int net_connect(struct net_handle *net, const char *host, uint16_t port)
     for (node = dns.head; node; node = node->next) {
         memcpy(&net->addr, ((struct dns_node *)node)->addr, sizeof(net->addr));
         net->addr.sin_family = AF_INET;
-        net->addr.sin_port = htons(port);
+        net->addr.sin_port = htons(proxy ? proxy->port : port);
 
         ret = socket_open(&net->sock, PF_INET, SOCK_STREAM, IPPROTO_IP);
         if (ret == -1)
@@ -41,17 +43,30 @@ int net_connect(struct net_handle *net, const char *host, uint16_t port)
             socket_close(&net->sock);
             continue;
         }
-
-        net->hostname = xstrdup(host);
-        if (!net->hostname) {
-            socket_close(&net->sock);
-            debugf("xstrdup(%s) error", host);
-            ret = -1;
-        }
         break;
     }
 
     dns_destroy(&dns);
+
+    if (ret == -1) /* Did not successfully connect to the server */
+        return -1;
+
+    if (proxy) {
+        ret =
+            proxy->handshake(net, host, port, proxy->username, proxy->password);
+        if (ret == -1) {
+            debug("proxy handshake error");
+            socket_close(&net->sock);
+            return -1;
+        }
+    }
+
+    net->hostname = xstrdup(host);
+    if (!net->hostname) {
+        socket_close(&net->sock);
+        debugf("xstrdup(%s) error", host);
+        ret = -1;
+    }
 
     return ret;
 }

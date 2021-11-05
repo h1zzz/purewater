@@ -36,8 +36,9 @@ set(HEADERS
     dns.h
     llist.h
     net.h
+    proxy.h
     socket.h
-    socks.h
+    socks5.h
     util.h
 )
 
@@ -46,8 +47,9 @@ set(SOURCES
     llist.c
     main.c
     net.c
+    proxy.c
     socket.c
-    socks.c
+    socks5.c
     util.c
 )
 

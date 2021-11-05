@@ -11,6 +11,8 @@
 
 #include "socket.h"
 
+struct proxy;
+
 struct net_handle {
     struct socket_handle sock;
     struct sockaddr_in addr;
@@ -23,7 +25,8 @@ struct net_handle {
     mbedtls_entropy_context entropy;
 };
 
-int net_connect(struct net_handle *net, const char *host, uint16_t port);
+int net_connect(struct net_handle *net, const char *host, uint16_t port,
+                const struct proxy *proxy);
 int net_tls_handshake(struct net_handle *net);
 int net_read(struct net_handle *net, void *buf, size_t size);
 int net_write(struct net_handle *net, const void *data, size_t n);
