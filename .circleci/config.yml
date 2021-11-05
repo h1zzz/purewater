@@ -31,6 +31,7 @@ jobs:
             apt update -y
             apt install -y git cmake build-essential wget
             cd agent
+            git submodule update --init
             mkdir build
             cd build
             cmake -DCMAKE_BUILD_TYPE="Debug" ..
