@@ -3,20 +3,46 @@
 version: 2.1
 
 jobs:
-  build:
+  cc:
     working_directory: ~/purewater
-
     docker:
       - image: golang:1.17.2-alpine3.14
-
     steps:
       - checkout
       - run:
-          name: Run tests
+          name: build cc
           command: |
             apk add --no-cache openssl
             openssl genrsa -out key.pem 2048
             openssl req -new -x509 -days 3650 -key key.pem -out cert.pem -subj "/C=US/ST= /L= /O= /OU= /CN= /emailAddress= "
             cd cc
             go mod download
-            go run .
+            go build -ldflags "-s -w" -o cc
+
+  agent:
+    working_directory: ~/purewater
+    docker:
+      - image: ubuntu:21.10
+    steps:
+      - checkout
+      - run:
+          name: build agent
+          command: |
+            apt update -y
+            apt install git cmake build-essential wget
+            cd agent
+            mkdir build
+            cd build
+            cmake -DCMAKE_BUILD_TYPE="Debug" ..
+            make
+            cmake -DCMAKE_BUILD_TYPE="Release" ..
+            make
+
+workflows:
+  cc:
+    jobs:
+      - cc
+
+  agent:
+    jobs:
+      - agent
