@@ -26,21 +26,30 @@ jobs:
     steps:
       - checkout
       - run:
-          name: init
+          name: Installation package
           command: |
             apt update -y
             apt install -y --fix-missing git cmake build-essential wget
-            git submodule update --init
-            mkdir agent/build
-            cd agent/build
       - run:
-          name: build debug agent
+          name: Initialization
           command: |
+            git submodule update --init
+      - run:
+          name: Build debug agent
+          command: |
+            cd agent
+            rm -rf build
+            mkdir build
+            cd build
             cmake -DCMAKE_BUILD_TYPE="Debug" ..
             make
       - run:
-          name: build release agent
+          name: Build release agent
           command: |
+            cd agent
+            rm -rf build
+            mkdir build
+            cd build
             cmake -DCMAKE_BUILD_TYPE="Release" ..
             make
 
