@@ -87,6 +87,8 @@ static int parse_answer(struct llist *list, int family,
                         const struct dns_node *hints, uint16_t port, char *data,
                         int n);
 static int dns_read_name(char *data, char *ptr, char *name, size_t size);
+static int dns_resolve_address(struct llist *list, const char *name,
+                               uint16_t port, const struct dns_node *hints);
 
 static const char *defnameserv[] = {"8.8.8.8", "9.9.9.9", "1.1.1.1", "1.2.4.8"};
 
@@ -94,80 +96,26 @@ int dns_resolve(struct llist *list, const char *name, uint16_t port,
                 const struct dns_node *hints)
 {
     struct socket_handler handler;
-    int family = AF_INET, ret;
+    int family, ret;
     struct llist nslist;
     struct lnode *node;
     struct nameserv_node *nameserv;
     char buf[10240];
-    struct sockaddr_in *si4;
-    struct sockaddr_in6 *si6;
-    struct dns_node *dns_node;
 
     llist_init(list, NULL, (lnode_free_t *)dns_node_free);
 
-    if (hints) {
-        family = hints->family;
-    }
+    family = hints ? hints->family : AF_INET;
 
-    /* If it is an IP address, it is directly resolved to an address. */
-    switch (family) {
-    case AF_INET:
-        if (!check_is_ipv4(name))
-            break;
-
-        si4 = calloc(1, sizeof(struct sockaddr_in));
-        if (!si4) {
-            debug("calloc error");
-            return -1;
-        }
-
-        ret = inet_pton(family, name, &si4->sin_addr);
-        if (ret <= 0) {
-            free(si4);
-            break;
-        }
-
-        si4->sin_family = AF_INET;
-        si4->sin_port = htons(port);
-        dns_node = dns_node_new(hints, (struct sockaddr *)si4,
-                                (socklen_t)sizeof(struct sockaddr_in));
-        if (!dns_node) {
-            debug("dns_node_new error");
-            free(si4);
-            return -1;
-        }
-        llist_insert_next(list, list->tail, (struct lnode *)dns_node);
-        return 0;
-    case AF_INET6:
-        if (!check_is_ipv6(name))
-            break;
-        si6 = calloc(1, sizeof(struct sockaddr_in6));
-        if (!si6) {
-            debug("calloc error");
-            return -1;
-        }
-        ret = inet_pton(family, name, &si6->sin6_addr);
-        if (ret <= 0) {
-            free(si6);
-            break;
-        }
-        si6->sin6_family = AF_INET6;
-        si6->sin6_port = htons(port);
-        dns_node = dns_node_new(hints, (struct sockaddr *)si6,
-                                (socklen_t)sizeof(struct sockaddr_in6));
-        if (!dns_node) {
-            debug("dns_node_new error");
-            free(si6);
-            return -1;
-        }
-        llist_insert_next(list, list->tail, (struct lnode *)dns_node);
-        return 0;
-    default:
+    if (family != AF_INET && family != AF_INET6) {
+        debugf("no support family (%d)", family);
         return -1;
     }
 
+    if (dns_resolve_address(list, name, port, hints) == 0)
+        return 0;
+
     /* If there are records in the hosts file, get the address from the
-       hosts file, unsupported. */
+    hosts file, unsupported. */
 
     if (nameserv_init(&nslist) == -1) {
         debug("nameserv_init error");
@@ -693,4 +641,74 @@ static int dns_read_name(char *data, char *ptr, char *name, size_t size)
         name[i - 1] = '\0';
 
     return count;
+}
+
+static int dns_resolve_address(struct llist *list, const char *name,
+                               uint16_t port, const struct dns_node *hints)
+{
+    struct dns_node *dns_node;
+    struct sockaddr_in *si4;
+    struct sockaddr_in6 *si6;
+    int ret, family;
+
+    family = hints ? hints->family : AF_INET;
+
+    /* If it is an IP address, it is directly resolved to an address. */
+    switch (family) {
+    case AF_INET:
+        if (!check_is_ipv4(name))
+            break;
+
+        si4 = calloc(1, sizeof(struct sockaddr_in));
+        if (!si4) {
+            debug("calloc error");
+            return -1;
+        }
+
+        ret = inet_pton(family, name, &si4->sin_addr);
+        if (ret <= 0) {
+            free(si4);
+            break;
+        }
+
+        si4->sin_family = AF_INET;
+        si4->sin_port = htons(port);
+        dns_node = dns_node_new(hints, (struct sockaddr *)si4,
+                                (socklen_t)sizeof(struct sockaddr_in));
+        if (!dns_node) {
+            debug("dns_node_new error");
+            free(si4);
+            return -1;
+        }
+        llist_insert_next(list, list->tail, (struct lnode *)dns_node);
+        return 0;
+    case AF_INET6:
+        if (!check_is_ipv6(name))
+            break;
+        si6 = calloc(1, sizeof(struct sockaddr_in6));
+        if (!si6) {
+            debug("calloc error");
+            return -1;
+        }
+        ret = inet_pton(family, name, &si6->sin6_addr);
+        if (ret <= 0) {
+            free(si6);
+            break;
+        }
+        si6->sin6_family = AF_INET6;
+        si6->sin6_port = htons(port);
+        dns_node = dns_node_new(hints, (struct sockaddr *)si6,
+                                (socklen_t)sizeof(struct sockaddr_in6));
+        if (!dns_node) {
+            debug("dns_node_new error");
+            free(si6);
+            return -1;
+        }
+        llist_insert_next(list, list->tail, (struct lnode *)dns_node);
+        return 0;
+    default:
+        break;
+    }
+
+    return -1;
 }
