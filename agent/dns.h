@@ -14,14 +14,9 @@
 
 struct dns_node {
     struct lnode _node;
-    int family;
-    int socktype;
-    int protocol;
-    struct sockaddr *addr;
-    socklen_t addrlen;
+    struct sockaddr_in *addr;
 };
 
-int dns_resolve(struct llist *list, const char *name, uint16_t port,
-                const struct dns_node *hints);
+int dns_resolve(struct llist *list, const char *name);
 
 #endif /* dns.h */

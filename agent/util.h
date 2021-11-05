@@ -7,6 +7,5 @@
 
 char *xstrdup(const char *str);
 int check_is_ipv4(const char *ip);
-int check_is_ipv6(const char *ip);
 
 #endif /* util.h */

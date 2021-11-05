@@ -59,9 +59,3 @@ int check_is_ipv4(const char *ip)
 
     return 1;
 }
-
-int check_is_ipv6(const char *ip)
-{
-    /* TODO: */
-    return strchr(ip, ':') != NULL;
-}
