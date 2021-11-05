@@ -29,7 +29,7 @@ jobs:
           name: build agent
           command: |
             apt update -y
-            apt install git cmake build-essential wget
+            apt install -y git cmake build-essential wget
             cd agent
             mkdir build
             cd build
