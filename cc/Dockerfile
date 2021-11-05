@@ -2,16 +2,14 @@
 
 FROM golang:1.17.2-alpine3.14 as builder
 
-RUN apk upgrade && apk add openssl
-
 WORKDIR /work
 
 COPY . .
 
-RUN openssl genrsa -out key.pem 2048
-RUN openssl req -new -x509 -days 3650 -key key.pem -out cert.pem -subj "/C=US/ST= /L= /O= /OU= /CN= /emailAddress= "
-
-RUN go mod download && go build -ldflags "-s -w" -o cc
+RUN apk add --no-cache openssl \
+    && openssl genrsa -out key.pem 2048 \
+    && openssl req -new -x509 -days 3650 -key key.pem -out cert.pem -subj "/C=US/ST= /L= /O= /OU= /CN= /emailAddress= " \
+    && go mod download && go build -ldflags "-s -w" -o cc
 
 FROM alpine:3.14
 
