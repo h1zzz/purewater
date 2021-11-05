@@ -83,11 +83,10 @@ static struct nameserv_node *nameserv_node_new(struct sockaddr *addr,
 static void nameserv_node_free(struct nameserv_node *node);
 static int nameserv_add_local_dns(struct llist *list);
 static int nameserv_init(struct llist *list);
-static int parse_answer(struct llist *list, int family,
-                        const struct dns_node *hints, uint16_t port, char *data,
-                        int n);
-static int dns_read_name(char *data, char *ptr, char *name, size_t size);
-static int dns_resolve_address(struct llist *list, const char *name,
+static int parse_answers(struct llist *list, int family,
+                         const struct dns_node *hints, uint16_t port,
+                         char *data, int n);
+static int dns_resolve_address(int family, struct llist *list, const char *name,
                                uint16_t port, const struct dns_node *hints);
 
 static const char *defnameserv[] = {"8.8.8.8", "9.9.9.9", "1.1.1.1", "1.2.4.8"};
@@ -111,7 +110,7 @@ int dns_resolve(struct llist *list, const char *name, uint16_t port,
         return -1;
     }
 
-    if (dns_resolve_address(list, name, port, hints) == 0)
+    if (dns_resolve_address(family, list, name, port, hints) == 0)
         return 0;
 
     /* If there are records in the hosts file, get the address from the
@@ -146,7 +145,7 @@ int dns_resolve(struct llist *list, const char *name, uint16_t port,
             debug("recv answer error");
             goto cleanup;
         }
-        ret = parse_answer(list, family, hints, port, buf, ret);
+        ret = parse_answers(list, family, hints, port, buf, ret);
         if (ret == -1) {
             debug("parse answer error");
             goto cleanup;
@@ -486,18 +485,127 @@ err:
     return -1;
 }
 
-static int parse_answer(struct llist *list, int family,
-                        const struct dns_node *hints, uint16_t port, char *data,
-                        int n)
+static int dns_read_name(char *data, char *ptr, char *name, size_t size)
+{
+    unsigned int offset, count = 1, n, jumped = 0, i = 0;
+    char ch;
+
+    while (*ptr) {
+
+        if (*(uint8_t *)ptr >= 0xc0) {
+            offset = ntohs(*(uint16_t *)ptr) - 0xc000;
+            ptr = data + offset;
+            jumped = 1;
+        }
+
+        n = *ptr++;
+
+        if (!jumped)
+            count += n + 1;
+
+        while (n--) {
+            ch = *ptr++;
+            if (name && i < size)
+                name[i++] = ch;
+        }
+
+        if (name && i < size)
+            name[i++] = '.';
+    }
+
+    if (jumped)
+        count++;
+
+    if (name && i < size)
+        name[i - 1] = '\0';
+
+    return count;
+}
+
+static void parse_answer(struct llist *list, int family,
+                         const struct dns_node *hints, int port, char *data,
+                         int pos, uint16_t class, uint16_t type,
+                         uint16_t rd_length)
+{
+    struct dns_node *dns_node;
+    struct sockaddr_in *si4;
+    struct sockaddr_in6 *si6;
+
+    switch (class) {
+    case CLASS_IN: {
+        switch (type) {
+        case TYPE_A: { /* IPv4 */
+            if (family != AF_INET) {
+                break;
+            }
+            si4 = calloc(1, sizeof(struct sockaddr_in));
+            if (!si4) {
+                debug("calloc error");
+                break;
+            }
+            memcpy(&si4->sin_addr, data + pos, rd_length);
+            si4->sin_family = AF_INET;
+            si4->sin_port = htons(port);
+            dns_node = dns_node_new(hints, (struct sockaddr *)si4,
+                                    sizeof(struct sockaddr_in));
+            if (!dns_node) {
+                debug("dns_node_new error");
+                free(si4);
+                break;
+            }
+            llist_insert_next(list, list->tail, (struct lnode *)dns_node);
+            break;
+        }
+        case TYPE_AAAA: { /* IPv6 */
+            if (rd_length == 1 && data[pos] == 0) {
+                break;
+            }
+            if (family != AF_INET6) {
+                break;
+            }
+            si6 = calloc(1, sizeof(struct sockaddr_in6));
+            if (!si6) {
+                debug("calloc error");
+                break;
+            }
+            memcpy(&si6->sin6_addr, data + pos, rd_length);
+            si6->sin6_family = AF_INET6;
+            si6->sin6_port = htons(port);
+            dns_node = dns_node_new(hints, (struct sockaddr *)si6,
+                                    sizeof(struct sockaddr_in6));
+            if (!dns_node) {
+                debug("dns_node_new error");
+                free(si6);
+                break;
+            }
+            llist_insert_next(list, list->tail, (struct lnode *)dns_node);
+            break;
+        }
+        case TYPE_CNAME: {
+            /* dns_read_name(data, data + pos, NULL, 0); */
+            break;
+        }
+        /* ... */
+        default:
+            debug("nosupported type.");
+            break;
+        }
+        break;
+    }
+    default:
+        debug("nosuppoted class type.");
+        break;
+    }
+}
+
+static int parse_answers(struct llist *list, int family,
+                         const struct dns_node *hints, uint16_t port,
+                         char *data, int n)
 {
     uint16_t i, an_count, type, class, rd_length;
     struct dns_header *header;
     struct dns_rrs *answer;
-    struct sockaddr_in *si4;
-    struct sockaddr_in6 *si6;
-    struct dns_node *dns_node;
     int pos, ret;
-    char name[256];
 
     pos = sizeof(struct dns_header);
     if (pos >= n)
@@ -506,8 +614,7 @@ static int parse_answer(struct llist *list, int family,
     header = (struct dns_header *)data;
     an_count = ntohs(header->an_count);
 
-    memset(name, 0, sizeof(name));
-    ret = dns_read_name(data, data + pos, name, sizeof(name));
+    ret = dns_read_name(data, data + pos, NULL, 0);
     if (ret >= n - pos)
         return -1;
 
@@ -517,8 +624,7 @@ static int parse_answer(struct llist *list, int family,
     pos += sizeof(struct dns_question);
 
     for (i = 0; i < an_count; i++) {
-        memset(name, 0, sizeof(name));
-        ret = dns_read_name(data, data + pos, name, sizeof(name));
+        ret = dns_read_name(data, data + pos, NULL, 0);
         if (ret >= n - pos)
             return -1;
 
@@ -535,123 +641,21 @@ static int parse_answer(struct llist *list, int family,
 
         type = ntohs(answer->type);
         class = ntohs(answer->class);
-
-        switch (class) {
-        case CLASS_IN: {
-            switch (type) {
-            case TYPE_A: { /* IPv4 */
-                if (family != AF_INET) {
-                    break;
-                }
-                si4 = calloc(1, sizeof(struct sockaddr_in));
-                if (!si4) {
-                    debug("calloc error");
-                    break;
-                }
-                memcpy(&si4->sin_addr, data + pos, rd_length);
-                si4->sin_family = AF_INET;
-                si4->sin_port = htons(port);
-                dns_node = dns_node_new(hints, (struct sockaddr *)si4,
-                                        sizeof(struct sockaddr_in));
-                if (!dns_node) {
-                    debug("dns_node_new error");
-                    free(si4);
-                    break;
-                }
-                llist_insert_next(list, list->tail, (struct lnode *)dns_node);
-                break;
-            }
-            case TYPE_AAAA: { /* IPv6 */
-                if (rd_length == 1 && data[pos] == 0) {
-                    break;
-                }
-                if (family != AF_INET6) {
-                    break;
-                }
-                si6 = calloc(1, sizeof(struct sockaddr_in6));
-                if (!si6) {
-                    debug("calloc error");
-                    break;
-                }
-                memcpy(&si6->sin6_addr, data + pos, rd_length);
-                si6->sin6_family = AF_INET6;
-                si6->sin6_port = htons(port);
-                dns_node = dns_node_new(hints, (struct sockaddr *)si6,
-                                        sizeof(struct sockaddr_in6));
-                if (!dns_node) {
-                    debug("dns_node_new error");
-                    free(si6);
-                    break;
-                }
-                llist_insert_next(list, list->tail, (struct lnode *)dns_node);
-                break;
-            }
-            case TYPE_CNAME: {
-                memset(name, 0, sizeof(name));
-                dns_read_name(data, data + pos, name, sizeof(name));
-                break;
-            }
-            /* ... */
-            default:
-                debug("nosupported type.");
-                break;
-            }
-            break;
-        }
-        default:
-            debug("nosuppoted class type.");
-            break;
-        }
+        parse_answer(list, family, hints, port, data, pos, class, type,
+                     rd_length);
         pos += rd_length;
     }
 
     return 0;
 }
 
-static int dns_read_name(char *data, char *ptr, char *name, size_t size)
-{
-    unsigned int offset, count = 1, n, jumped = 0, i = 0;
-
-    while (*ptr) {
-
-        if (*(uint8_t *)ptr >= 0xc0) {
-            offset = ntohs(*(uint16_t *)ptr) - 0xc000;
-            ptr = data + offset;
-            jumped = 1;
-        }
-
-        n = *ptr++;
-
-        if (!jumped)
-            count += n + 1;
-
-        while (n--) {
-            if (name && i < size)
-                name[i++] = *ptr++;
-        }
-
-        if (name && i < size)
-            name[i++] = '.';
-    }
-
-    if (jumped)
-        count++;
-
-    if (name && i < size)
-        name[i - 1] = '\0';
-
-    return count;
-}
-
-static int dns_resolve_address(struct llist *list, const char *name,
+static int dns_resolve_address(int family, struct llist *list, const char *name,
                                uint16_t port, const struct dns_node *hints)
 {
     struct dns_node *dns_node;
     struct sockaddr_in *si4;
     struct sockaddr_in6 *si6;
-    int ret, family;
-
-    family = hints ? hints->family : AF_INET;
+    int ret;
 
     /* If it is an IP address, it is directly resolved to an address. */
     switch (family) {
