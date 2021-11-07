@@ -21,8 +21,8 @@
 #    pragma comment(lib, "iphlpapi.lib")
 #endif /* _WIN32 */
 
-#define DNS_PORT               53
-#define nameserv_destroy(list) llist_destroy(list)
+#define DNS_PORT                 53
+#define nameserver_destroy(list) llist_destroy(list)
 
 /*
  * TYPE values
@@ -66,13 +66,14 @@ struct dns_rrs {
 };
 #pragma pack(pop)
 
-struct nameserv_node {
+struct nameserver_node {
     struct lnode _node;
     struct sockaddr *addr;
     socklen_t addrlen;
 };
 
-static const char *defnameserv[] = {"8.8.8.8", "9.9.9.9", "1.1.1.1", "1.2.4.8"};
+static const char *default_nameserver[] = {"8.8.8.8", "9.9.9.9", "1.1.1.1",
+                                           "1.2.4.8"};
 
 static struct dns_node *dns_node_new(struct sockaddr_in *addr)
 {
@@ -172,12 +173,12 @@ static int send_question(struct socket_handle *sock, const char *name)
     return 0;
 }
 
-static struct nameserv_node *nameserv_node_new(struct sockaddr *addr,
-                                               socklen_t addrlen)
+static struct nameserver_node *nameserver_node_new(struct sockaddr *addr,
+                                                   socklen_t addrlen)
 {
-    struct nameserv_node *node;
+    struct nameserver_node *node;
 
-    node = calloc(1, sizeof(struct nameserv_node));
+    node = calloc(1, sizeof(struct nameserver_node));
     if (!node) {
         debug("calloc error");
         return NULL;
@@ -189,16 +190,16 @@ static struct nameserv_node *nameserv_node_new(struct sockaddr *addr,
     return node;
 }
 
-static void nameserv_node_free(struct nameserv_node *node)
+static void nameserver_node_free(struct nameserver_node *node)
 {
     free(node->addr);
     free(node);
 }
 
 #ifdef _WIN32
-static int nameserv_add_local_dns(struct llist *list)
+static int nameserver_add_local_dns_nameserver(struct llist *list)
 {
-    struct nameserv_node *node;
+    struct nameserver_node *node;
     struct sockaddr_in *addr;
     FIXED_INFO *fInfo;
     ULONG fInfoLen;
@@ -249,10 +250,10 @@ static int nameserv_add_local_dns(struct llist *list)
 
         addr->sin_family = AF_INET;
         addr->sin_port = htons(DNS_PORT);
-        node = nameserv_node_new((struct sockaddr *)addr,
-                                 (socklen_t)sizeof(struct sockaddr_in));
+        node = nameserver_node_new((struct sockaddr *)addr,
+                                   (socklen_t)sizeof(struct sockaddr_in));
         if (!node) {
-            debug("nameserv_node_new error");
+            debug("nameserver_node_new error");
             free(addr);
             goto err;
         }
@@ -267,9 +268,9 @@ err:
     return -1;
 }
 #else  /* No defined _WIN32 */
-static int nameserv_add_local_dns(struct llist *list)
+static int nameserver_add_local_dns_nameserver(struct llist *list)
 {
-    struct nameserv_node *node;
+    struct nameserver_node *node;
     struct sockaddr_in *addr;
     FILE *fp;
     char buf[256], *ptr;
@@ -322,10 +323,10 @@ static int nameserv_add_local_dns(struct llist *list)
 
         addr->sin_family = AF_INET;
         addr->sin_port = htons(DNS_PORT);
-        node = nameserv_node_new((struct sockaddr *)addr,
-                                 (socklen_t)sizeof(struct sockaddr_in));
+        node = nameserver_node_new((struct sockaddr *)addr,
+                                   (socklen_t)sizeof(struct sockaddr_in));
         if (!node) {
-            debug("nameserv_node_new error");
+            debug("nameserver_node_new error");
             free(addr);
             goto err;
         }
@@ -340,33 +341,33 @@ err:
 }
 #endif /* _WIN32 */
 
-static int nameserv_init(struct llist *list)
+static int nameserver_init(struct llist *list)
 {
-    struct nameserv_node *node;
+    struct nameserver_node *node;
     struct sockaddr_in *addr;
     size_t i, n;
 
-    llist_init(list, NULL, (lnode_free_t *)nameserv_node_free);
-    nameserv_add_local_dns(list);
+    llist_init(list, NULL, (lnode_free_t *)nameserver_node_free);
+    nameserver_add_local_dns_nameserver(list);
 
-    n = sizeof(defnameserv) / sizeof(defnameserv[0]);
+    n = sizeof(default_nameserver) / sizeof(default_nameserver[0]);
     for (i = 0; i < n; i++) {
         addr = calloc(1, sizeof(struct sockaddr_in));
         if (!addr) {
             debug("calloc error");
             goto err;
         }
-        if (inet_pton(AF_INET, defnameserv[i], &addr->sin_addr) <= 0) {
+        if (inet_pton(AF_INET, default_nameserver[i], &addr->sin_addr) <= 0) {
             debug("inet_pton error");
             free(addr);
             goto err;
         }
         addr->sin_family = AF_INET;
         addr->sin_port = htons(DNS_PORT);
-        node = nameserv_node_new((struct sockaddr *)addr,
-                                 (socklen_t)sizeof(struct sockaddr_in));
+        node = nameserver_node_new((struct sockaddr *)addr,
+                                   (socklen_t)sizeof(struct sockaddr_in));
         if (!node) {
-            debug("nameserv_node_new error");
+            debug("nameserver_node_new error");
             free(addr);
             goto err;
         }
@@ -375,7 +376,7 @@ static int nameserv_init(struct llist *list)
 
     return 0;
 err:
-    nameserv_destroy(list);
+    nameserver_destroy(list);
     return -1;
 }
 
@@ -497,7 +498,7 @@ int dns_resolve(struct llist *list, const char *name)
     int ret;
     struct llist nslist;
     struct lnode *node;
-    struct nameserv_node *nameserv;
+    struct nameserver_node *nameserv;
     char buf[10240];
     struct sockaddr_in *addr;
     struct dns_node *dns_node;
@@ -531,13 +532,13 @@ int dns_resolve(struct llist *list, const char *name)
     /* If there are records in the hosts file, get the address from the
        hosts file, unsupported. */
 
-    if (nameserv_init(&nslist) == -1) {
-        debug("nameserv_init error");
+    if (nameserver_init(&nslist) == -1) {
+        debug("nameserver_init error");
         return -1;
     }
 
     for (node = nslist.head; node; node = node->next) {
-        nameserv = (struct nameserv_node *)node;
+        nameserv = (struct nameserver_node *)node;
         ret = socket_open(&sock, PF_INET, SOCK_DGRAM, IPPROTO_IP);
         if (ret == -1) {
             debug("open socket error");
@@ -575,7 +576,7 @@ int dns_resolve(struct llist *list, const char *name)
             break;
     }
 
-    nameserv_destroy(&nslist);
+    nameserver_destroy(&nslist);
 
     if (list->head)
         return 0;
