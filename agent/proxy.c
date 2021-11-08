@@ -6,6 +6,8 @@
 
 #include <string.h>
 
+#include <mbedtls/base64.h>
+
 #include "debug.h"
 #include "socket.h"
 #include "socks5.h"
@@ -66,9 +68,18 @@ int proxy_socks5_handshake(struct net_handle *net, const char *host,
     return 0;
 }
 
+/*
+ * CONNECT h1zzz.net:443 HTTP/1.1
+ * Host: h1zzz.net:443
+ * Proxy-Authorization: Basic YWRtaW46MTIzNDU2
+ * User-Agent: client
+ * Proxy-Connection: Keep-Alive
+ */
+
 /* int proxy_https_handshake(struct net_handle *net, const char *host,
                           uint16_t port, const char *username,
                           const char *password)
 {
+
     return 0;
 } */

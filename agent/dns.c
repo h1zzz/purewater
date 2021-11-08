@@ -17,9 +17,9 @@
 #include "socket.h"
 #include "util.h"
 
-#ifdef _WIN32
+#ifdef _MSC_VER
 #    pragma comment(lib, "iphlpapi.lib")
-#endif /* _WIN32 */
+#endif /* _MSC_VER */
 
 #define DNS_PORT                 53
 #define nameserver_destroy(list) llist_destroy(list)

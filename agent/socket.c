@@ -15,9 +15,9 @@
 
 #include "debug.h"
 
-#ifdef _WIN32
+#ifdef _MSC_VER
 #    pragma comment(lib, "ws2_32.lib")
-#endif /* _WIN32 */
+#endif /* _MSC_VER */
 
 #ifdef _WIN32
 static int socket_init(void)

@@ -28,6 +28,10 @@ else()
     endif()
 endif()
 
+if(MINGW)
+    add_definitions(-D_WIN32_WINNT=_WIN32_WINNT_VISTA)
+endif()
+
 add_definitions(-DMBEDTLS_CONFIG_FILE="config.h")
 add_subdirectory(${PROJECT_SOURCE_DIR}/mbedtls/library)
 
@@ -55,8 +59,9 @@ set(SOURCES
 
 set(LIBS mbedtls)
 
-if(WIN32)
+if(MSVC OR MINGW)
     list(APPEND LIBS ws2_32)
+    list(APPEND LIBS iphlpapi)
 endif()
 
 add_executable(agent ${HEADERS} ${SOURCES})
