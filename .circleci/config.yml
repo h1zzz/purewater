@@ -29,7 +29,7 @@ jobs:
           name: Installation package
           command: |
             apt update -y
-            apt install -y --fix-missing git cmake build-essential
+            apt install -y --fix-missing git cmake build-essential mingw-w64
       - run:
           name: Initialization
           command: |
@@ -50,6 +50,17 @@ jobs:
             rm -rf build
             mkdir build
             cd build
+            cmake -DCMAKE_BUILD_TYPE="Release" ..
+            make
+      - run:
+          name: Compile x86/64 of Release type, mingw-w64
+          command: |
+            cd agent
+            rm -rf build
+            mkdir build
+            cd build
+            export CC=x86_64-w64-mingw32-gcc
+            export CXX=x86_64-w64-mingw32-g++
             cmake -DCMAKE_BUILD_TYPE="Release" ..
             make
 
