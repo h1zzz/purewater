@@ -5,6 +5,7 @@
 #include "proxy.h"
 
 #include <string.h>
+#include <stdio.h>
 
 #include <mbedtls/base64.h>
 
