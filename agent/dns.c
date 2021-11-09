@@ -165,7 +165,7 @@ static int send_question(struct socket_handle *sock, const char *name)
     question->qtype = htons(TYPE_A);
     question->qclass = htons(CLASS_IN);
 
-    if (socket_write(sock, buf, (int)n) == -1) {
+    if (socket_send(sock, buf, (int)n) == -1) {
         debug("send dns question error");
         return -1;
     }
@@ -559,7 +559,7 @@ int dns_resolve(struct llist *list, const char *name)
             goto cleanup;
         }
 
-        ret = socket_read(&sock, buf, sizeof(buf));
+        ret = socket_recv(&sock, buf, sizeof(buf));
         if (ret == -1) {
             debug("recv answer error");
             goto cleanup;

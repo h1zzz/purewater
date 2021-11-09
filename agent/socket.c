@@ -143,7 +143,7 @@ again:
     return 0;
 }
 
-int socket_read(struct socket_handle *sock, void *buf, size_t size)
+int socket_recv(struct socket_handle *sock, void *buf, size_t size)
 {
     int nread;
 
@@ -168,7 +168,7 @@ again:
     return nread;
 }
 
-int socket_write(struct socket_handle *sock, const void *data, size_t n)
+int socket_send(struct socket_handle *sock, const void *data, size_t n)
 {
     int nwrite;
 

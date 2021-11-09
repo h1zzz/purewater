@@ -127,13 +127,13 @@ int proxy_https_handshake(struct net_handle *net, const char *host,
     }
     len += ret;
 
-    ret = net_write(net, buf, len);
+    ret = net_send(net, buf, len);
     if (ret == -1) {
         debug("net_write error");
         return -1;
     }
 
-    ret = net_read(net, buf, sizeof(buf));
+    ret = net_recv(net, buf, sizeof(buf));
     if (ret == -1) {
         debug("net_read error");
         return -1;

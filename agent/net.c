@@ -114,14 +114,14 @@ err:
     return -1;
 }
 
-static int tls_read(void *ctx, unsigned char *buf, size_t len)
+static int tls_recv(void *ctx, unsigned char *buf, size_t len)
 {
-    return socket_read(&((struct net_handle *)ctx)->sock, buf, len);
+    return socket_recv(&((struct net_handle *)ctx)->sock, buf, len);
 }
 
-static int tls_write(void *ctx, const unsigned char *buf, size_t len)
+static int tls_send(void *ctx, const unsigned char *buf, size_t len)
 {
-    return socket_write(&((struct net_handle *)ctx)->sock, buf, len);
+    return socket_send(&((struct net_handle *)ctx)->sock, buf, len);
 }
 
 int net_tls_handshake(struct net_handle *net)
@@ -139,7 +139,7 @@ int net_tls_handshake(struct net_handle *net)
         goto err;
     }
 
-    mbedtls_ssl_set_bio(&net->ssl, net, tls_write, tls_read, NULL);
+    mbedtls_ssl_set_bio(&net->ssl, net, tls_send, tls_recv, NULL);
 
     while ((ret = mbedtls_ssl_handshake(&net->ssl)) != 0) {
         if (ret != MBEDTLS_ERR_SSL_WANT_READ &&
@@ -156,20 +156,20 @@ err:
     return -1;
 }
 
-int net_read(struct net_handle *net, void *buf, size_t size)
+int net_recv(struct net_handle *net, void *buf, size_t size)
 {
     if (net->tls) {
         return mbedtls_ssl_read(&net->ssl, (unsigned char *)buf, size);
     }
-    return socket_read(&net->sock, buf, size);
+    return socket_recv(&net->sock, buf, size);
 }
 
-int net_write(struct net_handle *net, const void *data, size_t n)
+int net_send(struct net_handle *net, const void *data, size_t n)
 {
     if (net->tls) {
         return mbedtls_ssl_write(&net->ssl, (const unsigned char *)data, n);
     }
-    return socket_write(&net->sock, data, n);
+    return socket_send(&net->sock, data, n);
 }
 
 void net_close(struct net_handle *net)

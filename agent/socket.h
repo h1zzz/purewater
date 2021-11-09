@@ -35,8 +35,8 @@ int socket_listen(struct socket_handle *sock, const struct sockaddr *addr,
                   socklen_t addrlen);
 int socket_accept(struct socket_handle *sock, struct socket_handle *conn,
                   struct sockaddr *addr, socklen_t *addrlen);
-int socket_read(struct socket_handle *sock, void *buf, size_t size);
-int socket_write(struct socket_handle *sock, const void *data, size_t n);
+int socket_recv(struct socket_handle *sock, void *buf, size_t size);
+int socket_send(struct socket_handle *sock, const void *data, size_t n);
 int socket_set_blocking(struct socket_handle *sock);
 int socket_set_nonblocking(struct socket_handle *sock);
 void socket_shutdown(struct socket_handle *sock);
