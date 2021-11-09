@@ -76,10 +76,73 @@ int proxy_socks5_handshake(struct net_handle *net, const char *host,
  * Proxy-Connection: Keep-Alive
  */
 
-/* int proxy_https_handshake(struct net_handle *net, const char *host,
+int proxy_https_handshake(struct net_handle *net, const char *host,
                           uint16_t port, const char *username,
                           const char *password)
 {
+    unsigned char dst[1024] = {0}, src[512] = {0};
+    char buf[2048] = {0};
+    int ret;
+    size_t olen, len = 0;
+
+    ret = snprintf(buf + len, sizeof(buf) - len,
+                   "CONNECT %s:%hd HTTP/1.1\r\nHost: %s:%hd\r\n", host, port,
+                   host, port);
+    if (ret <= 0 || (size_t)ret >= sizeof(buf)) {
+        debug("snprintf error");
+        return -1;
+    }
+    len += ret;
+
+    if (username && password) {
+        /* format username and password */
+        ret = snprintf((char *)src, sizeof(src), "%s:%s", username, password);
+        if (ret <= 0 || (size_t)ret >= sizeof(src)) {
+            debugf("username and password exceed size limit (%s:%s)", username,
+                   password);
+            return -1;
+        }
+        /* Base64 encode the username and password */
+        ret = mbedtls_base64_encode(dst, sizeof(dst), &olen, src, (size_t)ret);
+        if (ret != 0) {
+            debug("mbedtls_base64_encode error");
+            return -1;
+        }
+        /* Add the username and password to the request message */
+        ret = snprintf(buf + len, sizeof(buf) - len,
+                       "Proxy-Authorization: Basic %s\r\n", dst);
+        if (ret <= 0 || (size_t)ret >= sizeof(buf)) {
+            debug("snprintf error");
+            return -1;
+        }
+        len += ret;
+    }
+
+    ret = snprintf(buf + len, sizeof(buf) - len,
+                   "User-Agent: %s\r\nProxy-Connection: %s\r\n\r\n", "client",
+                   "Keep-Alive");
+    if (ret <= 0 || (size_t)ret >= sizeof(buf)) {
+        debug("snprintf error");
+        return -1;
+    }
+    len += ret;
+
+    ret = net_write(net, buf, len);
+    if (ret == -1) {
+        debug("net_write error");
+        return -1;
+    }
+
+    ret = net_read(net, buf, sizeof(buf));
+    if (ret == -1) {
+        debug("net_read error");
+        return -1;
+    }
+
+    if (memcmp(buf, "HTTP/1.1 200", 12) != 0) {
+        debugf("http proxy failed: %s", buf);
+        return -1;
+    }
 
     return 0;
-} */
+}

@@ -19,9 +19,9 @@ int main(int argc, char *argv[])
 
     memset(&proxy, 0, sizeof(proxy));
 
-    proxy.handshake = proxy_socks5_handshake;
+    proxy.handshake = proxy_https_handshake;
     proxy.host = "127.0.0.1";
-    proxy.port = 1080;
+    proxy.port = 7890;
     proxy.username = "admin";
     proxy.password = "123456";
 
