@@ -6,9 +6,21 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <time.h>
 
 #include "debug.h"
 #include "socket.h"
+
+int xrand(void)
+{
+    static int sranded = 0;
+
+    if (!sranded) {
+        srand((unsigned int)time(NULL));
+        sranded = 1;
+    }
+    return rand();
+}
 
 char *xstrdup(const char *str)
 {
