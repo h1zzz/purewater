@@ -33,7 +33,7 @@ int main(int argc, char *argv[])
 
     /* net_tls_handshake(&net); */
 
-    net_write(&net, "hello\n", 6);
+    net_send(&net, "hello\n", 6);
     net_close(&net);
 
     return 0;
