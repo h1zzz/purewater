@@ -75,7 +75,6 @@ int proxy_socks5_handshake(struct net_handle *net, const char *host,
  * User-Agent: client
  * Proxy-Connection: Keep-Alive
  */
-
 int proxy_https_handshake(struct net_handle *net, const char *host,
                           uint16_t port, const char *username,
                           const char *password)
