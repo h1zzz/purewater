@@ -41,9 +41,9 @@ int socks5_client_send_method(struct net_handle *net, int use_password)
     if (use_password)
         buf[n++] = SOCKS5_USERNAME_PASSWORD; /* METHOD */
 
-    ret = net_send(net, buf, n);
+    ret = net_write(net, buf, n);
     if (ret == -1) {
-        debug("net_send error");
+        debug("net_write error");
         return -1;
     }
 
@@ -56,9 +56,9 @@ int socks5_client_send_method(struct net_handle *net, int use_password)
      * | 1  |   1    |
      * +----+--------+
      */
-    ret = net_recv(net, buf, sizeof(buf));
+    ret = net_read(net, buf, sizeof(buf));
     if (ret == -1) {
-        debug("net_recv error");
+        debug("net_read error");
         return -1;
     }
 
@@ -114,9 +114,9 @@ int socks5_client_send_password_auth(struct net_handle *net, const char *uname,
     while (len--)
         buf[n++] = *passwd++; /* PASSWD */
 
-    ret = net_send(net, buf, n);
+    ret = net_writen(net, buf, n);
     if (ret == -1) {
-        debug("net_send error");
+        debug("net_writen error");
         return -1;
     }
 
@@ -129,15 +129,9 @@ int socks5_client_send_password_auth(struct net_handle *net, const char *uname,
      * | 1  |   1    |
      * +----+--------+
      */
-    ret = net_recv(net, buf, sizeof(buf));
+    ret = net_readn(net, buf, sizeof(buf));
     if (ret == -1) {
-        debug("net_recv error");
-        return -1;
-    }
-
-    /* Verify message length */
-    if (ret != 2) {
-        debugf("packet length error: %d", ret);
+        debug("net_readn error");
         return -1;
     }
 
@@ -211,9 +205,9 @@ int socks5_client_request(struct net_handle *net, int cmd, int atyp,
     *(uint16_t *)(&buf[n]) = htons(dst_port);
     n += 2;
 
-    ret = net_send(net, buf, n);
+    ret = net_writen(net, buf, n);
     if (ret == -1) {
-        debug("net_send error");
+        debug("net_write error");
         return -1;
     }
 
@@ -228,15 +222,9 @@ int socks5_client_request(struct net_handle *net, int cmd, int atyp,
      * | 1  |  1  | X'00' |  1   | Variable |    2     |
      * +----+-----+-------+------+----------+----------+
      */
-    ret = net_recv(net, buf, sizeof(buf));
+    ret = net_readn(net, buf, sizeof(buf));
     if (ret == -1) {
-        debug("net_recv error");
-        return -1;
-    }
-
-    /* Verify message length */
-    if (ret <= 4) {
-        debugf("packet length error: %d", ret);
+        debug("net_readn error");
         return -1;
     }
 

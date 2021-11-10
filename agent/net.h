@@ -28,8 +28,10 @@ struct net_handle {
 int net_connect(struct net_handle *net, const char *host, uint16_t port,
                 const struct proxy *proxy);
 int net_tls_handshake(struct net_handle *net);
-int net_recv(struct net_handle *net, void *buf, size_t size);
-int net_send(struct net_handle *net, const void *data, size_t n);
+int net_read(struct net_handle *net, void *buf, size_t size);
+int net_readn(struct net_handle *net, void *buf, size_t size);
+int net_write(struct net_handle *net, const void *data, size_t n);
+int net_writen(struct net_handle *net, const void *data, size_t n);
 void net_close(struct net_handle *net);
 
 #endif /* connect.h */
