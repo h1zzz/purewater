@@ -182,23 +182,23 @@ int net_readn(struct net_handle *net, void *buf, size_t n)
     return n - nleft;
 }
 
-int net_write(struct net_handle *net, const void *data, size_t n)
+static int _net_write(struct net_handle *net, const void *data, size_t n)
 {
     if (net->tls)
         return mbedtls_ssl_write(&net->ssl, (const unsigned char *)data, n);
     return socket_send(&net->sock, data, n);
 }
 
-int net_writen(struct net_handle *net, const void *data, size_t n)
+int net_write(struct net_handle *net, const void *data, size_t n)
 {
     const char *ptr = data;
     size_t nleft = n;
     int nwrite;
 
     while (nleft > 0) {
-        nwrite = net_write(net, ptr, nleft);
+        nwrite = _net_write(net, ptr, nleft);
         if (nwrite == -1) {
-            debug("net_write error");
+            debug("_net_write error");
             return -1;
         }
         nleft -= nwrite;

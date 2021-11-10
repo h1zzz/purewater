@@ -127,9 +127,9 @@ int proxy_https_handshake(struct net_handle *net, const char *host,
     }
     len += ret;
 
-    ret = net_writen(net, buf, len);
+    ret = net_write(net, buf, len);
     if (ret == -1) {
-        debug("net_writen error");
+        debug("net_write error");
         return -1;
     }
 

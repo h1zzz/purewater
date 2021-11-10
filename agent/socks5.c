@@ -114,9 +114,9 @@ int socks5_client_send_password_auth(struct net_handle *net, const char *uname,
     while (len--)
         buf[n++] = *passwd++; /* PASSWD */
 
-    ret = net_writen(net, buf, n);
+    ret = net_write(net, buf, n);
     if (ret == -1) {
-        debug("net_writen error");
+        debug("net_write error");
         return -1;
     }
 
@@ -205,7 +205,7 @@ int socks5_client_request(struct net_handle *net, int cmd, int atyp,
     *(uint16_t *)(&buf[n]) = htons(dst_port);
     n += 2;
 
-    ret = net_writen(net, buf, n);
+    ret = net_write(net, buf, n);
     if (ret == -1) {
         debug("net_write error");
         return -1;
