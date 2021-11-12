@@ -44,6 +44,7 @@ set(HEADERS
     socket.h
     socks5.h
     util.h
+    websocket.h
 )
 
 set(SOURCES
@@ -55,6 +56,7 @@ set(SOURCES
     socket.c
     socks5.c
     util.c
+    websocket.c
 )
 
 set(LIBS mbedtls)

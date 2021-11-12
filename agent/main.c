@@ -5,36 +5,40 @@
 #include <string.h>
 
 #include "debug.h"
-#include "net.h"
-#include "proxy.h"
+#include "websocket.h"
 
 int main(int argc, char *argv[])
 {
-    struct net_handle net;
+    struct websocket ws;
     int ret;
-    struct proxy proxy;
+    char buf[256] = {0};
 
     (void)argc;
     (void)argv;
 
-    memset(&proxy, 0, sizeof(proxy));
-
-    proxy.handshake = proxy_https_handshake;
-    proxy.host = "127.0.0.1";
-    proxy.port = 7890;
-    proxy.username = "admin";
-    proxy.password = "123456";
-
-    ret = net_connect(&net, "127.0.0.1", 2323, &proxy);
+    ret = websocket_connect(&ws, "127.0.0.1", 8080, "/ws", NULL);
     if (ret == -1) {
-        debug("net_connect error");
+        debug("websocket_connect error");
         return -1;
     }
 
-    /* net_tls_handshake(&net); */
+    ret = websocket_recv(&ws, NULL, buf, 2);
+    if (ret == -1) {
+        debug("websocket_recv error");
+        goto err;
+    }
 
-    net_send(&net, "hello\n", 6);
-    net_close(&net);
+    debugf("%s", buf);
 
-    return 0;
+    ret = websocket_recv(&ws, NULL, buf, sizeof(buf) - 1);
+    if (ret == -1) {
+        debug("websocket_recv error");
+        goto err;
+    }
+
+    debugf("%s", buf);
+
+err:
+    websokcet_close(&ws);
+    return ret;
 }
