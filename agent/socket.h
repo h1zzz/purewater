@@ -22,9 +22,15 @@
 #    if __BYTE_ORDER == __BIG_ENDIAN
 #        define ntohll(x) (x)
 #        define htonll(x) (x)
-#    elif __BYTE_ORDER == __LITTLE_ENDIAN
-#        define htonll(x) ((uint64_t)htonl((x) & 0xFFFFFFFF) << 32) | htonl((x) >> 32))
-#        define ntohll(x) ((uint64_t)ntohl((x) & 0xFFFFFFFF) << 32) | ntohl((x) >> 32))
+#    else
+#        if __BYTE_ORDER == __LITTLE_ENDIAN
+#            define htonll(x)                                  \
+                ((((uint64_t)htonl((x)&0xFFFFFFFFUL)) << 32) | \
+                 htonl((uint32_t)((x) >> 32)))
+#            define ntohll(x)                                  \
+                ((((uint64_t)ntohl((x)&0xFFFFFFFFUL)) << 32) | \
+                 ntohl((uint32_t)((x) >> 32)))
+#        endif
 #    endif
 #endif /* __linux__ */
 
