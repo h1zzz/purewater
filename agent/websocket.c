@@ -8,6 +8,7 @@
 
 #include <string.h>
 #include <stdint.h>
+#include <stdio.h>
 
 #include <mbedtls/base64.h>
 #include <mbedtls/sha1.h>
