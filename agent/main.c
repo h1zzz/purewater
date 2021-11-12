@@ -16,7 +16,7 @@ int main(int argc, char *argv[])
     (void)argc;
     (void)argv;
 
-    ret = websocket_connect(&ws, "127.0.0.1", 8080, "/ws", NULL);
+    ret = websocket_connect(&ws, "127.0.0.1", 8080, "/ws", 1, NULL);
     if (ret == -1) {
         debug("websocket_connect error");
         return -1;

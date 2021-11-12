@@ -10,10 +10,23 @@
 #    include <ws2tcpip.h>
 #else /* No define _WIN32 */
 #    include <arpa/inet.h>
-#endif /* _WIN32 */
+#    ifdef __linux__
+#        include <endian.h>
+#    endif /* __linux */
+#endif     /* _WIN32 */
 
 #include <stdint.h>
 #include <stddef.h>
+
+#ifdef __linux__
+#    if __BYTE_ORDER == __BIG_ENDIAN
+#        define ntohll(x) (x)
+#        define htonll(x) (x)
+#    elif __BYTE_ORDER == __LITTLE_ENDIAN
+#        define htonll(x) ((uint64_t)htonl((x) & 0xFFFFFFFF) << 32) | htonl((x) >> 32))
+#        define ntohll(x) ((uint64_t)ntohl((x) & 0xFFFFFFFF) << 32) | ntohl((x) >> 32))
+#    endif
+#endif /* __linux__ */
 
 #ifdef _WIN32
 typedef int socklen_t;

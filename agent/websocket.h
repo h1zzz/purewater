@@ -29,11 +29,11 @@
 
 struct websocket {
     struct net_handle net;
-    unsigned long long remaining;
+    uint64_t remaining;
 };
 
 int websocket_connect(struct websocket *ws, const char *host, uint16_t port,
-                      const char *path, const struct proxy *proxy);
+                      const char *path, int tls, const struct proxy *proxy);
 
 /*
  * type: WebSocket message type

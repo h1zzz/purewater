@@ -30,7 +30,7 @@ struct frame_hdr {
     uint8_t fin;
     uint8_t opcode;
     uint8_t mask;
-    unsigned long long payload_len;
+    uint64_t len;
 };
 
 /*
@@ -174,7 +174,7 @@ static int websocket_handshake(struct websocket *ws, const char *host,
 }
 
 int websocket_connect(struct websocket *ws, const char *host, uint16_t port,
-                      const char *path, const struct proxy *proxy)
+                      const char *path, int tls, const struct proxy *proxy)
 {
     int ret;
 
@@ -188,11 +188,13 @@ int websocket_connect(struct websocket *ws, const char *host, uint16_t port,
         return -1;
     }
 
-    ret = net_tls_handshake(&ws->net);
-    if (ret == -1) {
-        net_close(&ws->net);
-        debug("net_tls_handshake error");
-        return -1;
+    if (tls) {
+        ret = net_tls_handshake(&ws->net);
+        if (ret == -1) {
+            net_close(&ws->net);
+            debug("net_tls_handshake error");
+            return -1;
+        }
     }
 
     ret = websocket_handshake(ws, host, path);
@@ -230,16 +232,11 @@ static int websocket_read_frame_hdr(struct websocket *ws, struct frame_hdr *hdr)
 {
     unsigned char buf[8] = {0};
     int ret;
-    unsigned long long payload_len;
+    uint64_t len;
 
     ret = net_readn(&ws->net, buf, 2);
     if (ret == -1) {
         debug("net_readn error");
-        return -1;
-    }
-
-    if (ret != 2) {
-        debug("invalid packet");
         return -1;
     }
 
@@ -260,11 +257,11 @@ static int websocket_read_frame_hdr(struct websocket *ws, struct frame_hdr *hdr)
     hdr->mask = buf[1] & FRAME_MASK;
     /* 0x7f = 0111 1111, Take the value of the lower seven bits */
     /* if 0-125, that is the payload length. */
-    payload_len = buf[1] & 0x7f;
+    len = buf[1] & 0x7f;
 
     /* Multibyte length quantities are expressed in network byte order. */
 
-    if (payload_len == 126) {
+    if (len == 126) {
         /*
          * If 126, the following 2 bytes interpreted as a 16-bit unsigned
          * integer are the payload length.
@@ -274,8 +271,8 @@ static int websocket_read_frame_hdr(struct websocket *ws, struct frame_hdr *hdr)
             debug("net_readn error");
             return -1;
         }
-        payload_len = htons(*(unsigned short *)buf);
-    } else if (payload_len == 127) {
+        len = htons(*(uint16_t *)buf);
+    } else if (len == 127) {
         /*
          * If 127, the following 8 bytes interpreted as a 64-bit unsigned
          * integer (the most significant bit MUST be 0) are the payload length.
@@ -285,10 +282,10 @@ static int websocket_read_frame_hdr(struct websocket *ws, struct frame_hdr *hdr)
             debug("net_readn error");
             return -1;
         }
-        payload_len = htonll(*(unsigned long long *)buf);
+        len = htonll(*(uint64_t *)buf);
     }
 
-    hdr->payload_len = payload_len;
+    hdr->len = len;
 
     return 0;
 }
@@ -346,7 +343,7 @@ int websocket_recv(struct websocket *ws, int *type, void *buf, size_t n)
     if (type)
         *type = hdr.opcode;
 
-    ws->remaining = hdr.payload_len;
+    ws->remaining = hdr.len;
 
     /*
      * Masking-key: 0 or 4 bytes
