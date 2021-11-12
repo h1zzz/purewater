@@ -10,18 +10,10 @@
 #    include <ws2tcpip.h>
 #else /* No define _WIN32 */
 #    include <arpa/inet.h>
-#    ifdef __linux__
-#        include <endian.h>
-#    endif /* __linux */
-#endif     /* _WIN32 */
+#endif /* _WIN32 */
 
 #include <stdint.h>
 #include <stddef.h>
-
-#if defined(__linux__) && __BYTE_ORDER == __BIG_ENDIAN
-#    define ntohll(x) (x)
-#    define htonll(x) (x)
-#endif /* defined(__linux__) && __BYTE_ORDER == __BIG_ENDIAN */
 
 #ifdef _WIN32
 typedef int socklen_t;
@@ -35,20 +27,6 @@ struct socket_handle {
     int fd;
 #endif /* _WIN32 */
 };
-
-#if defined(__linux__) && __BYTE_ORDER == __LITTLE_ENDIAN
-static inline uint64_t htonll(uint64_t x)
-{
-    return ((uint64_t)htonl(x & 0xFFFFFFFFUL)) << 32 |
-           htonl((uint32_t)(x >> 32));
-}
-
-static inline uint64_t ntohll(uint64_t x)
-{
-    return ((uint64_t)ntohl(x & 0xFFFFFFFFUL)) << 32 |
-           ntohl((uint32_t)(x >> 32));
-}
-#endif /* defined(__linux__) && __BYTE_ORDER == __LITTLE_ENDIAN */
 
 int socket_open(struct socket_handle *sock, int af, int type, int protocol);
 int socket_connect(struct socket_handle *sock, const struct sockaddr *addr,

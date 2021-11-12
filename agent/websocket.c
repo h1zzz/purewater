@@ -31,7 +31,7 @@ struct frame_hdr {
     uint8_t fin;
     uint8_t opcode;
     uint8_t mask;
-    uint64_t len;
+    uint64_t len; /* payload length */
 };
 
 /*
@@ -272,7 +272,7 @@ static int websocket_read_frame_hdr(struct websocket *ws, struct frame_hdr *hdr)
             debug("net_readn error");
             return -1;
         }
-        len = htons(*(uint16_t *)buf);
+        len = ntohs(*(uint16_t *)buf);
     } else if (len == 127) {
         /*
          * If 127, the following 8 bytes interpreted as a 64-bit unsigned
@@ -283,7 +283,8 @@ static int websocket_read_frame_hdr(struct websocket *ws, struct frame_hdr *hdr)
             debug("net_readn error");
             return -1;
         }
-        len = htonll(*(uint64_t *)buf);
+        len = ((uint64_t)ntohl((*(uint64_t *)buf) & 0xFFFFFFFFUL)) << 32;
+        len |= ntohl((uint32_t)((*(uint64_t *)buf) >> 32));
     }
 
     hdr->len = len;
