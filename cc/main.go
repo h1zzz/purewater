@@ -15,10 +15,12 @@ func main() {
 	// }
 	// log.Print("database init success")
 
+	go serverRun("127.0.0.1:8080")
+
 	options := []ssh.Option{
 		ssh.HostKeyFile("key.pem"),
 		ssh.PasswordAuth(sshPasswordAuth),
 	}
-	log.Print("start ssh server")
+	log.Printf("start ssh server: %s", sshAddr)
 	log.Fatal(ssh.ListenAndServe(sshAddr, sshHandler, options...))
 }

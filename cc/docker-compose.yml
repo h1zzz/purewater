@@ -20,7 +20,7 @@ services:
       - ./db.sql:/docker-entrypoint-initdb.d/db.sql:ro
       - ${DATA_DIR}/mysql:/var/lib/mysql
     networks:
-    - backend
+      - backend
 
   cc:
     container_name: cc

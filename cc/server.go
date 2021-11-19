@@ -22,6 +22,12 @@ func handleDevice(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 	for {
+		s := ""
+		for i := 0; i < 200; i++ {
+			s += "helloworld"
+		}
+		conn.WriteMessage(websocket.TextMessage, []byte(s))
+		conn.WriteMessage(websocket.TextMessage, []byte("hello world"))
 		t, data, err := conn.ReadMessage()
 		if err != nil {
 			log.Print(err)
@@ -32,6 +38,7 @@ func handleDevice(rw http.ResponseWriter, r *http.Request) {
 }
 
 func serverRun(addr string) error {
+	log.Printf("start server: %s", addr)
 	http.HandleFunc("/ws", handleDevice)
 	return http.ListenAndServeTLS(addr, "cert.pem", "key.pem", nil)
 }
