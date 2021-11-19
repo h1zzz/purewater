@@ -4,7 +4,7 @@
 
 #include <string.h>
 
-#include "debug.h""
+#include "debug.h"
 #include "websocket.h"
 
 int main(int argc, char *argv[])
