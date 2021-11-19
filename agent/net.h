@@ -34,3 +34,4 @@ int net_write(struct net_handle *net, const void *data, size_t n);
 void net_close(struct net_handle *net);
 
 #endif /* connect.h */
+

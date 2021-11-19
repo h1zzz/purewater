@@ -31,3 +31,4 @@ struct lnode *llist_find(struct llist *list, const void *key);
 void llist_destroy(struct llist *list);
 
 #endif /* list.h */
+

@@ -583,3 +583,4 @@ int dns_resolve(struct llist *list, const char *name)
 
     return -1;
 }
+

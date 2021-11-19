@@ -65,5 +65,5 @@ CTestTestfile.cmake
 _deps
 
 # Workspace
-.vscode
+.cache
 /build/

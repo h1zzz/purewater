@@ -43,3 +43,4 @@ void socket_shutdown(struct socket_handle *sock);
 void socket_close(struct socket_handle *sock);
 
 #endif /* socket.h */
+

@@ -215,3 +215,4 @@ void net_close(struct net_handle *net)
     free(net->hostname);
     socket_close(&net->sock);
 }
+

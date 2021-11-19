@@ -27,3 +27,4 @@ int proxy_https_handshake(struct net_handle *net, const char *host,
                           const char *password);
 
 #endif /* proxy.h */
+

@@ -256,3 +256,4 @@ void socket_close(struct socket_handle *sock)
     close(sock->fd);
 #endif /* _WIN32 */
 }
+
