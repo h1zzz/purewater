@@ -77,4 +77,3 @@ void llist_destroy(struct llist *list)
     while (list->head)
         llist_remove(list, list->head);
 }
-

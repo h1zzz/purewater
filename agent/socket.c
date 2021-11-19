@@ -5,18 +5,18 @@
 #include "socket.h"
 
 #ifdef _WIN32
-# include <windows.h>
+#include <windows.h>
 #else /* No define _WIN32 */
-# include <sys/socket.h>
-# include <unistd.h>
-# include <errno.h>
-# include <fcntl.h>
+#include <sys/socket.h>
+#include <unistd.h>
+#include <errno.h>
+#include <fcntl.h>
 #endif /* _WIN32 */
 
 #include "debug.h"
 
 #ifdef _MSC_VER
-# pragma comment(lib, "ws2_32.lib")
+#pragma comment(lib, "ws2_32.lib")
 #endif /* _MSC_VER */
 
 #ifdef _WIN32
@@ -52,7 +52,7 @@ int socket_open(struct socket_handle *sock, int af, int type, int protocol)
         debug("create socket error");
         return -1;
     }
-#else /* No defined _WIN32 */
+#else  /* No defined _WIN32 */
     if (sock->fd == -1) {
         debug("create socket error");
         return -1;
@@ -75,7 +75,7 @@ again:
         debug("connect error");
         return -1;
     }
-#else /* No defined _WIN32 */
+#else  /* No defined _WIN32 */
     if (ret == -1) {
         if (errno == EINTR)
             goto again;
@@ -97,7 +97,7 @@ int socket_listen(struct socket_handle *sock, const struct sockaddr *addr,
         debug("bind address error");
         return -1;
     }
-#else /* No defined _WIN32 */
+#else  /* No defined _WIN32 */
     if (ret == -1) {
         debug("bind address error");
         return -1;
@@ -110,7 +110,7 @@ int socket_listen(struct socket_handle *sock, const struct sockaddr *addr,
         debug("listen error");
         return -1;
     }
-#else /* No defined _WIN32 */
+#else  /* No defined _WIN32 */
     if (ret == -1) {
         debug("listen error");
         return -1;
@@ -132,7 +132,7 @@ again:
         debug("accept error");
         return -1;
     }
-#else /* No defined _WIN32 */
+#else  /* No defined _WIN32 */
     if (conn->fd == -1) {
         if (errno == EINTR)
             goto again;
@@ -156,7 +156,7 @@ again:
         debug("recv error");
         return -1;
     }
-#else /* No defined _WIN32 */
+#else  /* No defined _WIN32 */
     nread = recv(sock->fd, buf, size, MSG_NOSIGNAL);
     if (nread == -1) {
         if (errno == EINTR)
@@ -181,7 +181,7 @@ again:
         debug("send error");
         return -1;
     }
-#else /* No defined _WIN32 */
+#else  /* No defined _WIN32 */
     nwrite = send(sock->fd, data, n, MSG_NOSIGNAL);
     if (nwrite == -1) {
         if (errno == EINTR)
@@ -201,7 +201,7 @@ int socket_set_blocking(struct socket_handle *sock)
         debug("set block error");
         return -1;
     }
-#else /* No define _WIN32 */
+#else  /* No define _WIN32 */
     int flags = fcntl(sock->fd, F_GETFL);
     if (flags == -1) {
         debug("set block GETFL error");
@@ -224,7 +224,7 @@ int socket_set_nonblocking(struct socket_handle *sock)
         debug("set nonblock error");
         return -1;
     }
-#else /* No define _WIN32 */
+#else  /* No define _WIN32 */
     int flags = fcntl(sock->fd, F_GETFL);
     if (flags == -1) {
         debug("set nonblock GETFL error");
@@ -243,7 +243,7 @@ void socket_shutdown(struct socket_handle *sock)
 {
 #ifdef _WIN32
     shutdown(sock->fd, SD_BOTH);
-#else /* No defined _WIN32 */
+#else  /* No defined _WIN32 */
     shutdown(sock->fd, SHUT_RDWR);
 #endif /* _WIN32 */
 }
@@ -252,8 +252,7 @@ void socket_close(struct socket_handle *sock)
 {
 #ifdef _WIN32
     closesocket(sock->fd);
-#else /* No defined _WIN32 */
+#else  /* No defined _WIN32 */
     close(sock->fd);
 #endif /* _WIN32 */
 }
-

@@ -146,4 +146,3 @@ int proxy_https_handshake(struct net_handle *net, const char *host,
 
     return 0;
 }
-

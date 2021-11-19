@@ -58,4 +58,3 @@ int socks5_client_request(struct net_handle *net, int cmd, int atyp,
                           const char *dst_addr, uint16_t dst_port);
 
 #endif /* socks5.h */
-

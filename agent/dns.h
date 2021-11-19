@@ -20,4 +20,3 @@ struct dns_node {
 int dns_resolve(struct llist *list, const char *name);
 
 #endif /* dns.h */
-
