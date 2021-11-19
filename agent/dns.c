@@ -5,7 +5,7 @@
 #include "dns.h"
 
 #ifdef _WIN32
-#    include <iphlpapi.h>
+# include <iphlpapi.h>
 #endif /* _WIN32 */
 
 #include <string.h>
@@ -18,10 +18,10 @@
 #include "util.h"
 
 #ifdef _MSC_VER
-#    pragma comment(lib, "iphlpapi.lib")
+# pragma comment(lib, "iphlpapi.lib")
 #endif /* _MSC_VER */
 
-#define DNS_PORT                 53
+#define DNS_PORT 53
 #define nameserver_destroy(list) llist_destroy(list)
 
 /*
@@ -30,7 +30,7 @@
  * TYPE fields are used in resource records.  Note that these types are a
  * subset of QTYPEs.
  */
-#define TYPE_A     1 /* 1 a host address */
+#define TYPE_A 1 /* 1 a host address */
 #define TYPE_CNAME 5 /* 5 the canonical name for an alias */
 /* https://datatracker.ietf.org/doc/html/rfc3596#section-2.1 */
 #define TYPE_AAAA 28
@@ -72,8 +72,12 @@ struct nameserver_node {
     socklen_t addrlen;
 };
 
-static const char *default_nameserver[] = {"8.8.8.8", "9.9.9.9", "1.1.1.1",
-                                           "1.2.4.8"};
+static const char *default_nameserver[] = {
+    "8.8.8.8",
+    "9.9.9.9",
+    "1.1.1.1",
+    "1.2.4.8",
+};
 
 static struct dns_node *dns_node_new(struct sockaddr_in *addr)
 {
@@ -570,7 +574,7 @@ int dns_resolve(struct llist *list, const char *name)
             debug("parse answer error");
             goto cleanup;
         }
-    cleanup:
+cleanup:
         socket_close(&sock);
         if (ret != -1)
             break;

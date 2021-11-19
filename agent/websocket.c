@@ -17,12 +17,12 @@
 #include "util.h"
 
 #define WEBSOCKET_VERSION "13"
-#define WEBSOCKET_GUID    "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
+#define WEBSOCKET_GUID "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
 
-#define FRAME_FIN    1 << 7
-#define FRAME_RSV1   1 << 6
-#define FRAME_RSV2   1 << 5
-#define FRAME_RSV3   1 << 4
+#define FRAME_FIN 1 << 7
+#define FRAME_RSV1 1 << 6
+#define FRAME_RSV2 1 << 5
+#define FRAME_RSV3 1 << 4
 #define FRAME_OPCODE 0xf
 
 #define FRAME_MASK 1 << 7

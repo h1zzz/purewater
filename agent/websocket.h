@@ -21,11 +21,11 @@
  * %xB-F are reserved for further control frames
  */
 #define WEBSOCKET_CONTINUATION 0x0
-#define WEBSOCKET_TEXT         0x1
-#define WEBSOCKET_BINARY       0x2
-#define WEBSOCKET_CLOSE        0x8
-#define WEBSOCKET_PING         0x9
-#define WEBSOCKET_PONG         0xa
+#define WEBSOCKET_TEXT 0x1
+#define WEBSOCKET_BINARY 0x2
+#define WEBSOCKET_CLOSE 0x8
+#define WEBSOCKET_PING 0x9
+#define WEBSOCKET_PONG 0xa
 
 struct websocket {
     struct net_handle net;

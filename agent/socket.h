@@ -6,10 +6,10 @@
 #define _SOCKET_H
 
 #ifdef _WIN32
-#    include <winsock2.h>
-#    include <ws2tcpip.h>
+# include <winsock2.h>
+# include <ws2tcpip.h>
 #else /* No define _WIN32 */
-#    include <arpa/inet.h>
+# include <arpa/inet.h>
 #endif /* _WIN32 */
 
 #include <stdint.h>
@@ -17,13 +17,13 @@
 
 #ifdef _WIN32
 typedef int socklen_t;
-#else  /* No define _WIN32 */
+#else /* No define _WIN32 */
 #endif /* _WIN32 */
 
 struct socket_handle {
 #ifdef _WIN32
     SOCKET fd;
-#else  /* No define _WIN32 */
+#else /* No define _WIN32 */
     int fd;
 #endif /* _WIN32 */
 };
