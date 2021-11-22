@@ -198,11 +198,42 @@ static void nameserver_node_free(struct nameserver_node *node)
     free(node);
 }
 
-#ifdef _WIN32
-static int nameserver_add_local_dns_nameserver(struct llist *list)
+static int append_nameserver(struct llist *list, const char *ip)
 {
     struct nameserver_node *node;
     struct sockaddr_in *addr;
+    int ret;
+
+    addr = calloc(1, sizeof(struct sockaddr_in));
+    if (!addr) {
+        debug("calloc error");
+        return -1;
+    }
+
+    ret = inet_pton(AF_INET, ip, &addr->sin_addr);
+    if (ret <= 0) {
+        debug("inet_pton error");
+        free(addr);
+        return -1;
+    }
+
+    addr->sin_family = AF_INET;
+    addr->sin_port = htons(DNS_PORT);
+    node = nameserver_node_new((struct sockaddr *)addr,
+                               (socklen_t)sizeof(struct sockaddr_in));
+    if (!node) {
+        debug("nameserver_node_new error");
+        free(addr);
+        return -1;
+    }
+
+    llist_insert_next(list, list->tail, (struct lnode *)node);
+    return 0;
+}
+
+#ifdef _WIN32
+static int nameserver_add_local_dns_nameserver(struct llist *list)
+{
     FIXED_INFO *fInfo;
     ULONG fInfoLen;
     IP_ADDR_STRING *ipAddr;
@@ -236,30 +267,10 @@ static int nameserver_add_local_dns_nameserver(struct llist *list)
             ipAddr = ipAddr->Next;
             continue;
         }
-
-        addr = calloc(1, sizeof(struct sockaddr_in));
-        if (!addr) {
-            debug("calloc error");
+        if (append_nameserver(list, ipAddr->IpAddress.String) == -1) {
+            debug("append_nameserver error");
             goto err;
         }
-
-        if (inet_pton(AF_INET, ipAddr->IpAddress.String, &addr->sin_addr) <=
-            0) {
-            debug("inet_pton error");
-            free(addr);
-            goto err;
-        }
-
-        addr->sin_family = AF_INET;
-        addr->sin_port = htons(DNS_PORT);
-        node = nameserver_node_new((struct sockaddr *)addr,
-                                   (socklen_t)sizeof(struct sockaddr_in));
-        if (!node) {
-            debug("nameserver_node_new error");
-            free(addr);
-            goto err;
-        }
-        llist_insert_next(list, list->tail, (struct lnode *)node);
         ipAddr = ipAddr->Next;
     }
 
@@ -272,11 +283,8 @@ err:
 #else  /* No defined _WIN32 */
 static int nameserver_add_local_dns_nameserver(struct llist *list)
 {
-    struct nameserver_node *node;
-    struct sockaddr_in *addr;
     FILE *fp;
     char buf[256], *ptr;
-    int ret;
 
     fp = fopen("/etc/resolv.conf", "r");
     if (!fp) {
@@ -308,31 +316,10 @@ static int nameserver_add_local_dns_nameserver(struct llist *list)
             continue;
         }
 
-        addr = calloc(1, sizeof(struct sockaddr_in));
-        if (!addr) {
-            debug("calloc error");
+        if (append_nameserver(list, ptr) == -1) {
+            debug("append_nameserver error");
             goto err;
         }
-
-        ret = inet_pton(AF_INET, ptr, &addr->sin_addr);
-        if (ret <= 0) {
-            if (ret == 0)
-                continue;
-            debug("inet_pton error");
-            free(addr);
-            goto err;
-        }
-
-        addr->sin_family = AF_INET;
-        addr->sin_port = htons(DNS_PORT);
-        node = nameserver_node_new((struct sockaddr *)addr,
-                                   (socklen_t)sizeof(struct sockaddr_in));
-        if (!node) {
-            debug("nameserver_node_new error");
-            free(addr);
-            goto err;
-        }
-        llist_insert_next(list, list->tail, (struct lnode *)node);
     }
 
     fclose(fp);
@@ -345,36 +332,17 @@ err:
 
 static int nameserver_init(struct llist *list)
 {
-    struct nameserver_node *node;
-    struct sockaddr_in *addr;
     size_t i, n;
 
     llist_init(list, NULL, (lnode_free_t *)nameserver_node_free);
     nameserver_add_local_dns_nameserver(list);
 
     n = sizeof(default_nameserver) / sizeof(default_nameserver[0]);
-    for (i = 0; i < n; i++) {
-        addr = calloc(1, sizeof(struct sockaddr_in));
-        if (!addr) {
-            debug("calloc error");
+    for (i = 0; i < n; i++)
+        if (append_nameserver(list, default_nameserver[i]) == -1) {
+            debug("append_nameserver error");
             goto err;
         }
-        if (inet_pton(AF_INET, default_nameserver[i], &addr->sin_addr) <= 0) {
-            debug("inet_pton error");
-            free(addr);
-            goto err;
-        }
-        addr->sin_family = AF_INET;
-        addr->sin_port = htons(DNS_PORT);
-        node = nameserver_node_new((struct sockaddr *)addr,
-                                   (socklen_t)sizeof(struct sockaddr_in));
-        if (!node) {
-            debug("nameserver_node_new error");
-            free(addr);
-            goto err;
-        }
-        llist_insert_next(list, list->tail, (struct lnode *)node);
-    }
 
     return 0;
 err:
