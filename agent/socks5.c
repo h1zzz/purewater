@@ -182,7 +182,15 @@ static int socks5_client_read_response(struct net_handle *net)
         return -1;
     }
 
-    return buf[1];
+    switch (buf[1]) {
+    case SOCKS5_SUCCEEDED:
+        return 0;
+    default:
+        debugf("rep: %d", buf[1]);
+        break;
+    }
+
+    return -1;
 }
 
 int socks5_client_request(struct net_handle *net, int cmd, int atyp,
