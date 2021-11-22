@@ -1,6 +1,4 @@
-/*
- * MIT License Copyright (c) 2021, h1zzz
- */
+/* MIT License Copyright (c) 2021, h1zzz */
 
 /* https://datatracker.ietf.org/doc/html/rfc6455 */
 
@@ -399,8 +397,10 @@ int websocket_send(struct websocket *ws, int type, const void *buf, size_t n)
         len = 4;
     } else {
         header[1] |= 127; /* payload length */
-        /* Because n is a size_t type, it has only 32 bits, and the higher 32
-         * bits are always 1 */
+        /* 
+         * Because n is a size_t type, it has only 32 bits, and the higher 32
+         * bits are always 1
+         */
         *(uint32_t *)&header[2] = htonl(0);
         *(uint32_t *)&header[6] = htonl((uint32_t)(n & 0xffffffff));
         len = 10;

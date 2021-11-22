@@ -1,6 +1,4 @@
-/*
- * MIT License Copyright (c) 2021, h1zzz
- */
+/* MIT License Copyright (c) 2021, h1zzz */
 
 #ifndef _DEBUG_H
 #define _DEBUG_H

@@ -1,6 +1,6 @@
+/* MIT License Copyright (c) 2021, h1zzz */
+
 /*
- * MIT License Copyright (c) 2021, h1zzz
- *
  * https://datatracker.ietf.org/doc/html/rfc1928
  * https://datatracker.ietf.org/doc/html/rfc1929
  */

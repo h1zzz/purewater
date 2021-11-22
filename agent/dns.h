@@ -1,6 +1,4 @@
-/*
- * MIT License Copyright (c) 2021, h1zzz
- */
+/* MIT License Copyright (c) 2021, h1zzz */
 
 #ifndef _DNS_H
 #define _DNS_H
