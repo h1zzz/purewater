@@ -149,6 +149,42 @@ int socks5_client_send_password_auth(struct net_handle *net, const char *uname,
     return buf[1] == 0;
 }
 
+static int socks5_client_read_response(struct net_handle *net)
+{
+    unsigned char buf[256] = {0};
+    int ret;
+
+    /*
+     * The SOCKS request information is sent by the client as soon as it has
+     * established a connection to the SOCKS server, and completed the
+     * authentication negotiations.  The server evaluates the request, and
+     * returns a reply formed as follows:
+     * +----+-----+-------+------+----------+----------+
+     * |VER | REP |  RSV  | ATYP | BND.ADDR | BND.PORT |
+     * +----+-----+-------+------+----------+----------+
+     * | 1  |  1  | X'00' |  1   | Variable |    2     |
+     * +----+-----+-------+------+----------+----------+
+     */
+    ret = net_read(net, buf, sizeof(buf));
+    if (ret == -1) {
+        debug("net_read error");
+        return -1;
+    }
+
+    if (ret < 2) {
+        debug("invalid packet");
+        return -1;
+    }
+
+    /* Verify the socks version */
+    if (buf[0] != SOCKS5_VERSION) {
+        debugf("incorrect protocol version: %d", buf[0]);
+        return -1;
+    }
+
+    return buf[1];
+}
+
 int socks5_client_request(struct net_handle *net, int cmd, int atyp,
                           const char *dst_addr, uint16_t dst_port)
 {
@@ -211,28 +247,11 @@ int socks5_client_request(struct net_handle *net, int cmd, int atyp,
         return -1;
     }
 
-    /*
-     * The SOCKS request information is sent by the client as soon as it has
-     * established a connection to the SOCKS server, and completed the
-     * authentication negotiations.  The server evaluates the request, and
-     * returns a reply formed as follows:
-     * +----+-----+-------+------+----------+----------+
-     * |VER | REP |  RSV  | ATYP | BND.ADDR | BND.PORT |
-     * +----+-----+-------+------+----------+----------+
-     * | 1  |  1  | X'00' |  1   | Variable |    2     |
-     * +----+-----+-------+------+----------+----------+
-     */
-    ret = net_readn(net, buf, sizeof(buf));
+    ret = socks5_client_read_response(net);
     if (ret == -1) {
-        debug("net_readn error");
+        debug("socks5_client_read_response error");
         return -1;
     }
 
-    /* Verify the socks version */
-    if (buf[0] != SOCKS5_VERSION) {
-        debugf("incorrect protocol version: %d", buf[0]);
-        return -1;
-    }
-
-    return 0;
+    return ret;
 }
