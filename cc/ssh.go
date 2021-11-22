@@ -73,7 +73,7 @@ func sshHandler(s ssh.Session) {
 		return
 	}
 	conf := &readline.Config{
-		Prompt:            "\033[4mpw\033[0m > ",
+		Prompt:            fmt.Sprintf("\033[32m%s@purewater\033[0m$ ", s.User()),
 		HistoryFile:       path.Join(homeDir, ".pw_history"),
 		HistorySearchFold: true,
 		Stdin:             s,

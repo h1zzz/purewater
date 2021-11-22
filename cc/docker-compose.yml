@@ -35,14 +35,15 @@ services:
       - "2222:22"
     environment:
       SSH_ADDR: ${SSH_ADDR}
-      SSH_USER: ${SSH_USER}
-      SSH_PASSWORD: ${SSH_PASSWORD}
+      SSH_USER: ${SSH_USER} # Admin username
+      SSH_PASSWORD: ${SSH_PASSWORD} # Admin user password
       MYSQL_ADDR: ${MYSQL_ADDR}
       MYSQL_DATABASE: ${MYSQL_DATABASE}
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     volumes:
       - /etc/localtime:/etc/localtime:ro
+      # - /root/.ssh/authorized_keys:/root/.ssh/authorized_keys:ro
     networks:
       - backend
 
