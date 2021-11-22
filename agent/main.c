@@ -38,6 +38,14 @@ int main(int argc, char *argv[])
 
     debugf("%s", buf);
 
+    ret = websocket_send(&ws, WEBSOCKET_TEXT, "hello cc", 8);
+    if (ret == -1) {
+        debug("websocket_send error");
+        goto err;
+    }
+
+    debugf("ret: %d", ret);
+
 err:
     websokcet_close(&ws);
     return ret;

@@ -21,6 +21,7 @@ func main() {
 		ssh.HostKeyFile("key.pem"),
 		ssh.PasswordAuth(sshPasswordAuth),
 	}
+
 	log.Printf("start ssh server: %s", sshAddr)
 	log.Fatal(ssh.ListenAndServe(sshAddr, sshHandler, options...))
 }

@@ -33,6 +33,7 @@ func handleDevice(rw http.ResponseWriter, r *http.Request) {
 			log.Print(err)
 			return
 		}
+		log.Printf("recv: %s", string(data))
 		conn.WriteMessage(t, data)
 	}
 }

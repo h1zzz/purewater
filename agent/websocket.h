@@ -40,6 +40,13 @@ int websocket_connect(struct websocket *ws, const char *host, uint16_t port,
  * Read a frame of data, if it is not read, discard the unread data
  */
 int websocket_recv(struct websocket *ws, int *type, void *buf, size_t n);
+
+/*
+ * Send data to the websocket server, return the number of bytes sent
+ * successfully, return -1 on failure
+ */
+int websocket_send(struct websocket *ws, int type, const void *buf, size_t n);
+
 void websokcet_close(struct websocket *ws);
 
 #endif /* websocket.h */

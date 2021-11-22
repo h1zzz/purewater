@@ -14,6 +14,7 @@
 #include <mbedtls/sha1.h>
 
 #include "debug.h"
+#include "net.h"
 #include "util.h"
 
 #define WEBSOCKET_VERSION "13"
@@ -283,7 +284,7 @@ static int websocket_read_frame_hdr(struct websocket *ws, struct frame_hdr *hdr)
             debug("net_readn error");
             return -1;
         }
-        len = ((uint64_t)ntohl((*(uint64_t *)buf) & 0xFFFFFFFFUL)) << 32;
+        len = ((uint64_t)ntohl((*(uint64_t *)buf) & 0xffffffff)) << 32;
         len |= ntohl((uint32_t)((*(uint64_t *)buf) >> 32));
     }
 
@@ -375,7 +376,73 @@ int websocket_recv(struct websocket *ws, int *type, void *buf, size_t n)
     return ret;
 }
 
+int websocket_send(struct websocket *ws, int type, const void *buf, size_t n)
+{
+    uint8_t header[14] = {0}, *mask_key;
+    uint8_t payload[2048];
+    const uint8_t *ptr;
+    size_t i, len = 0;
+    int ret, nwrite;
+
+    header[0] |= FRAME_FIN;           /* set fin */
+    header[0] |= (unsigned char)type; /* opcode */
+
+    /* All frames sent from client to server have this bit set to 1 */
+    header[1] |= FRAME_MASK; /* set mask */
+
+    if (n <= 125) {
+        header[1] |= n; /* payload length */
+        len = 2;
+    } else if (n <= 0xffff) {
+        header[1] |= 126; /* payload length */
+        *(uint16_t *)&header[2] = htons((uint16_t)n);
+        len = 4;
+    } else {
+        header[1] |= 127; /* payload length */
+        /* Because n is a size_t type, it has only 32 bits, and the higher 32
+         * bits are always 1 */
+        *(uint32_t *)&header[2] = htonl(0);
+        *(uint32_t *)&header[6] = htonl((uint32_t)(n & 0xffffffff));
+        len = 10;
+    }
+
+    /* set mask key */
+    mask_key = &header[len];
+    for (i = 0; i < 4; i++) {
+        mask_key[i] = (uint8_t)(xrand() % 0xff);
+        len++;
+    }
+
+    ret = net_write(&ws->net, header, len); /* send header */
+    if (ret == -1) {
+        debug("net_write error");
+        return -1;
+    }
+
+    /* transformed data and send payload */
+    nwrite = 0;
+    len = 0;
+    ptr = buf;
+    for (i = 0; i < n; i++) {
+        payload[len++] = ptr[i] ^ mask_key[i % 4];
+        if (len < sizeof(payload) && (i + 1) < n) {
+            /* The buffer is not full and there is still data */
+            continue;
+        }
+        ret = net_write(&ws->net, payload, len);
+        if (ret == -1) {
+            debug("net_write error");
+            return -1;
+        }
+        len = 0; /* Reset the buffer length and start filling again */
+        nwrite += ret;
+    }
+
+    return nwrite;
+}
+
 void websokcet_close(struct websocket *ws)
 {
+    websocket_send(ws, WEBSOCKET_CLOSE, NULL, 0);
     net_close(&ws->net);
 }
