@@ -441,7 +441,7 @@ int websocket_send(struct websocket *ws, int type, const void *buf, size_t n)
     return nwrite;
 }
 
-void websokcet_close(struct websocket *ws)
+void websocket_close(struct websocket *ws)
 {
     websocket_send(ws, WEBSOCKET_CLOSE, NULL, 0);
     net_close(&ws->net);

@@ -45,6 +45,6 @@ int websocket_recv(struct websocket *ws, int *type, void *buf, size_t n);
  */
 int websocket_send(struct websocket *ws, int type, const void *buf, size_t n);
 
-void websokcet_close(struct websocket *ws);
+void websocket_close(struct websocket *ws);
 
 #endif /* websocket.h */
