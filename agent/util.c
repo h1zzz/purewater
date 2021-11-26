@@ -9,6 +9,23 @@
 #include "debug.h"
 #include "socket.h"
 
+#ifdef _WIN32
+#define PATH_SEPARATOR '\\'
+#else /* No define _WIN32 */
+#define PATH_SEPARATOR '/'
+#endif /* _WIN32 */
+
+const char *xbasename(const char *str)
+{
+    const char *s = NULL;
+
+    while (*str) {
+        if (*str++ == PATH_SEPARATOR)
+            s = str;
+    }
+    return s;
+}
+
 int xrand(void)
 {
     static int sranded = 0;
