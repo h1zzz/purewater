@@ -36,7 +36,6 @@ add_definitions(-DMBEDTLS_CONFIG_FILE="config.h")
 add_subdirectory(${PROJECT_SOURCE_DIR}/mbedtls/library)
 
 set(HEADERS
-    # conn_pool.h
     debug.h
     dns.h
     llist.h
@@ -49,7 +48,6 @@ set(HEADERS
 )
 
 set(SOURCES
-    # conn_pool.c
     dns.c
     llist.c
     main.c
