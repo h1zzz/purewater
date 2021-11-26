@@ -1,13 +1,13 @@
 /* MIT License Copyright (c) 2021, h1zzz */
 
+#include <unistd.h>
 #include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
 
 #include "debug.h"
 
-int main(int argc, char *argv[])
+int main(void)
 {
-    (void)argc;
-    (void)argv;
-
     return 0;
 }
