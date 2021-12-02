@@ -298,7 +298,7 @@ static int websocket_skip_remaining(struct websocket *ws)
     int ret;
 
     while (ws->remaining > 0) {
-        n = ws->remaining > sizeof(buf) ? sizeof(buf) : ws->remaining;
+        n = ws->remaining > sizeof(buf) ? sizeof(buf) : (size_t)ws->remaining;
         ret = net_readn(&ws->net, buf, n);
         if (ret == -1) {
             debug("net_readn error");
@@ -363,7 +363,8 @@ int websocket_recv(struct websocket *ws, int *type, void *buf, size_t n)
     }
 
     /* TODO: https://datatracker.ietf.org/doc/html/rfc6455#section-5.3 */
-    ret = net_readn(&ws->net, buf, n > ws->remaining ? ws->remaining : n);
+    n =  n > ws->remaining ? (size_t)ws->remaining : n;
+    ret = net_readn(&ws->net, buf, n);
     if (ret == -1) {
         debug("net_readn error");
         return -1;
