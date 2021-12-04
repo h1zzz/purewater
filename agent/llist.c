@@ -4,7 +4,7 @@
 
 #include <stddef.h>
 
-void llist_init(struct llist *list, lnode_find_t *_find, lnode_free_t *_free)
+void llist_init(llist_t *list, lnode_find_t *_find, lnode_free_t *_free)
 {
     list->_find = _find;
     list->_free = _free;
@@ -12,8 +12,7 @@ void llist_init(struct llist *list, lnode_find_t *_find, lnode_free_t *_free)
     list->tail = NULL;
 }
 
-void llist_insert_next(struct llist *list, struct lnode *pos,
-                       struct lnode *node)
+void llist_insert_next(llist_t *list, lnode_t *pos, lnode_t *node)
 {
     node->list = list;
     node->prev = pos;
@@ -38,7 +37,7 @@ void llist_insert_next(struct llist *list, struct lnode *pos,
     }
 }
 
-void llist_remove(struct llist *list, struct lnode *node)
+void llist_remove(llist_t *list, lnode_t *node)
 {
     if (node == list->head) {
         list->head = node->next;
@@ -59,9 +58,9 @@ void llist_remove(struct llist *list, struct lnode *node)
         list->_free(node);
 }
 
-struct lnode *llist_find(struct llist *list, const void *key)
+lnode_t *llist_find(llist_t *list, const void *key)
 {
-    struct lnode *ptr = NULL;
+    lnode_t *ptr = NULL;
 
     for (ptr = list->head; ptr; ptr = ptr->next) {
         if (list->_find && list->_find(ptr, key))
@@ -70,7 +69,7 @@ struct lnode *llist_find(struct llist *list, const void *key)
     return ptr;
 }
 
-void llist_destroy(struct llist *list)
+void llist_destroy(llist_t *list)
 {
     while (list->head)
         llist_remove(list, list->head);

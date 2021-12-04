@@ -41,20 +41,20 @@
  * Send a negotiated authentication request to the socks5 server, if it fails,
  * it will return -1, if it succeeds, it will return the authentication method
  */
-int socks5_client_send_method(struct net_handle *net, int use_password);
+int socks5_client_send_method(net_handle_t *net, int use_password);
 
 /*
  * Use user name and password to authenticate to the socks5 server, return 0 if
  * the authentication succeeds, and return -1 if it fails
  */
-int socks5_client_send_password_auth(struct net_handle *net, const char *uname,
+int socks5_client_send_password_auth(net_handle_t *net, const char *uname,
                                      const char *passwd);
 
 /*
  * Send a detailed proxy request to the socks5 server, return socks5 replies
  * code
  */
-int socks5_client_request(struct net_handle *net, int cmd, int atyp,
+int socks5_client_request(net_handle_t *net, int cmd, int atyp,
                           const char *dst_addr, uint16_t dst_port);
 
 #endif /* socks5.h */

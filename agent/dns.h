@@ -3,18 +3,15 @@
 #ifndef _DNS_H
 #define _DNS_H
 
-#include <stdint.h>
-
 #include "llist.h"
 #include "socket.h"
 
-#define dns_destroy(list) llist_destroy(list)
-
 struct dns_node {
-    struct lnode _node;
+    lnode_t _node;
     struct sockaddr_in *addr;
 };
 
-int dns_resolve(struct llist *list, const char *name);
+int dns_resolve(llist_t *list, const char *name);
+void dns_destroy(llist_t *list);
 
 #endif /* dns.h */

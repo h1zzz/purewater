@@ -18,26 +18,26 @@ typedef int socklen_t;
 #else  /* No define _WIN32 */
 #endif /* _WIN32 */
 
-struct socket_handle {
+typedef struct socket_handle {
 #ifdef _WIN32
     SOCKET fd;
 #else  /* No define _WIN32 */
     int fd;
 #endif /* _WIN32 */
-};
+} socket_handle_t;
 
-int socket_open(struct socket_handle *sock, int af, int type, int protocol);
-int socket_connect(struct socket_handle *sock, const struct sockaddr *addr,
+int socket_open(socket_handle_t *sock, int af, int type, int protocol);
+int socket_connect(socket_handle_t *sock, const struct sockaddr *addr,
                    socklen_t addrlen);
-int socket_listen(struct socket_handle *sock, const struct sockaddr *addr,
+int socket_listen(socket_handle_t *sock, const struct sockaddr *addr,
                   socklen_t addrlen);
-int socket_accept(struct socket_handle *sock, struct socket_handle *conn,
+int socket_accept(socket_handle_t *sock, socket_handle_t *conn,
                   struct sockaddr *addr, socklen_t *addrlen);
-int socket_recv(struct socket_handle *sock, void *buf, size_t size);
-int socket_send(struct socket_handle *sock, const void *data, size_t n);
-int socket_set_blocking(struct socket_handle *sock);
-int socket_set_nonblocking(struct socket_handle *sock);
-void socket_shutdown(struct socket_handle *sock);
-void socket_close(struct socket_handle *sock);
+int socket_recv(socket_handle_t *sock, void *buf, size_t size);
+int socket_send(socket_handle_t *sock, const void *data, size_t n);
+int socket_set_blocking(socket_handle_t *sock);
+int socket_set_nonblocking(socket_handle_t *sock);
+void socket_shutdown(socket_handle_t *sock);
+void socket_close(socket_handle_t *sock);
 
 #endif /* socket.h */

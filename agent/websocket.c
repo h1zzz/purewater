@@ -86,7 +86,7 @@ static int generate_websocket_accept(const unsigned char *ws_key,
     return (int)olen;
 }
 
-static int websocket_handshake(struct websocket *ws, const char *host,
+static int websocket_handshake(websocket_t *ws, const char *host,
                                const char *path)
 {
     unsigned char ws_key[128] = {0}, ac_key[128] = {0};
@@ -173,12 +173,12 @@ static int websocket_handshake(struct websocket *ws, const char *host,
     return 0;
 }
 
-int websocket_connect(struct websocket *ws, const char *host, uint16_t port,
+int websocket_connect(websocket_t *ws, const char *host, uint16_t port,
                       const char *path, int tls, const struct proxy *proxy)
 {
     int ret;
 
-    memset(ws, 0, sizeof(struct websocket));
+    memset(ws, 0, sizeof(websocket_t));
 
     /* Connect to server */
     ret = net_connect(&ws->net, host, port, proxy);
@@ -228,7 +228,7 @@ int websocket_connect(struct websocket *ws, const char *host, uint16_t port,
  * +---------------------------------------------------------------+
  */
 
-static int websocket_read_frame_hdr(struct websocket *ws, struct frame_hdr *hdr)
+static int websocket_read_frame_hdr(websocket_t *ws, struct frame_hdr *hdr)
 {
     unsigned char buf[8] = {0};
     int ret;
@@ -291,7 +291,7 @@ static int websocket_read_frame_hdr(struct websocket *ws, struct frame_hdr *hdr)
     return 0;
 }
 
-static int websocket_skip_remaining(struct websocket *ws)
+static int websocket_skip_remaining(websocket_t *ws)
 {
     char buf[1024];
     size_t n;
@@ -310,7 +310,7 @@ static int websocket_skip_remaining(struct websocket *ws)
     return 0;
 }
 
-int websocket_recv(struct websocket *ws, int *type, void *buf, size_t n)
+int websocket_recv(websocket_t *ws, int *type, void *buf, size_t n)
 {
     struct frame_hdr hdr;
     unsigned char mask_key[4];
@@ -363,7 +363,7 @@ int websocket_recv(struct websocket *ws, int *type, void *buf, size_t n)
     }
 
     /* TODO: https://datatracker.ietf.org/doc/html/rfc6455#section-5.3 */
-    n =  n > ws->remaining ? (size_t)ws->remaining : n;
+    n = n > ws->remaining ? (size_t)ws->remaining : n;
     ret = net_readn(&ws->net, buf, n);
     if (ret == -1) {
         debug("net_readn error");
@@ -375,7 +375,7 @@ int websocket_recv(struct websocket *ws, int *type, void *buf, size_t n)
     return ret;
 }
 
-int websocket_send(struct websocket *ws, int type, const void *buf, size_t n)
+int websocket_send(websocket_t *ws, int type, const void *buf, size_t n)
 {
     uint8_t header[14] = {0}, *mask_key;
     uint8_t payload[2048];
@@ -398,7 +398,7 @@ int websocket_send(struct websocket *ws, int type, const void *buf, size_t n)
         len = 4;
     } else {
         header[1] |= 127; /* payload length */
-        /* 
+        /*
          * Because n is a size_t type, it has only 32 bits, and the higher 32
          * bits are always 1
          */
@@ -442,7 +442,7 @@ int websocket_send(struct websocket *ws, int type, const void *buf, size_t n)
     return nwrite;
 }
 
-void websocket_close(struct websocket *ws)
+void websocket_close(websocket_t *ws)
 {
     websocket_send(ws, WEBSOCKET_CLOSE, NULL, 0);
     net_close(&ws->net);

@@ -20,7 +20,6 @@
 #endif /* _MSC_VER */
 
 #define DNS_PORT 53
-#define nameserver_destroy(list) llist_destroy(list)
 
 /*
  * TYPE values
@@ -65,7 +64,7 @@ struct dns_rrs {
 #pragma pack(pop)
 
 struct nameserver_node {
-    struct lnode _node;
+    lnode_t _node;
     struct sockaddr *addr;
     socklen_t addrlen;
 };
@@ -124,7 +123,7 @@ static void format_dns_name(char *name)
     }
 }
 
-static int send_question(struct socket_handle *sock, const char *name)
+static int send_question(socket_handle_t *sock, const char *name)
 {
     struct dns_header *header;
     struct dns_question *question;
@@ -198,7 +197,7 @@ static void nameserver_node_free(struct nameserver_node *node)
     free(node);
 }
 
-static int append_nameserver(struct llist *list, const char *ip)
+static int append_nameserver(llist_t *list, const char *ip)
 {
     struct nameserver_node *node;
     struct sockaddr_in *addr;
@@ -227,12 +226,12 @@ static int append_nameserver(struct llist *list, const char *ip)
         return -1;
     }
 
-    llist_insert_next(list, list->tail, (struct lnode *)node);
+    llist_insert_next(list, list->tail, (lnode_t *)node);
     return 0;
 }
 
 #ifdef _WIN32
-static int nameserver_add_local_dns_nameserver(struct llist *list)
+static int nameserver_add_local_dns_nameserver(llist_t *list)
 {
     FIXED_INFO *fInfo;
     ULONG fInfoLen;
@@ -281,7 +280,7 @@ err:
     return -1;
 }
 #else  /* No defined _WIN32 */
-static int nameserver_add_local_dns_nameserver(struct llist *list)
+static int nameserver_add_local_dns_nameserver(llist_t *list)
 {
     FILE *fp;
     char buf[256], *ptr;
@@ -330,7 +329,12 @@ err:
 }
 #endif /* _WIN32 */
 
-static int nameserver_init(struct llist *list)
+static void nameserver_destroy(llist_t *list)
+{
+    llist_destroy(list);
+}
+
+static int nameserver_init(llist_t *list)
 {
     size_t i, n;
 
@@ -387,7 +391,7 @@ static int dns_read_name(char *data, char *ptr, char *name, size_t size)
     return count;
 }
 
-static int parse_answer(struct llist *list, char *data, int n)
+static int parse_answer(llist_t *list, char *data, int n)
 {
     uint16_t i, an_count, type, class, rd_length;
     struct dns_header *header;
@@ -453,7 +457,7 @@ static int parse_answer(struct llist *list, char *data, int n)
                 break;
             }
 
-            llist_insert_next(list, list->tail, (struct lnode *)dns_node);
+            llist_insert_next(list, list->tail, (lnode_t *)dns_node);
         } while (0);
 
         pos += rd_length;
@@ -462,12 +466,12 @@ static int parse_answer(struct llist *list, char *data, int n)
     return 0;
 }
 
-int dns_resolve(struct llist *list, const char *name)
+int dns_resolve(llist_t *list, const char *name)
 {
-    struct socket_handle sock;
+    socket_handle_t sock;
     int ret;
-    struct llist nslist;
-    struct lnode *node;
+    llist_t nslist;
+    lnode_t *node;
     struct nameserver_node *nameserv;
     char buf[10240];
     struct sockaddr_in *addr;
@@ -495,7 +499,7 @@ int dns_resolve(struct llist *list, const char *name)
             free(addr);
             return -1;
         }
-        llist_insert_next(list, list->tail, (struct lnode *)dns_node);
+        llist_insert_next(list, list->tail, (lnode_t *)dns_node);
         return 0;
     }
 
@@ -552,4 +556,9 @@ int dns_resolve(struct llist *list, const char *name)
         return 0;
 
     return -1;
+}
+
+void dns_destroy(llist_t *list)
+{
+    llist_destroy(list);
 }

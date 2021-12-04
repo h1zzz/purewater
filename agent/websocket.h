@@ -25,26 +25,26 @@
 #define WEBSOCKET_PING 0x9
 #define WEBSOCKET_PONG 0xa
 
-struct websocket {
-    struct net_handle net;
+typedef struct websocket {
+    net_handle_t net;
     uint64_t remaining;
-};
+} websocket_t;
 
-int websocket_connect(struct websocket *ws, const char *host, uint16_t port,
+int websocket_connect(websocket_t *ws, const char *host, uint16_t port,
                       const char *path, int tls, const struct proxy *proxy);
 
 /*
  * type: WebSocket message type
  * Read a frame of data, if it is not read, discard the unread data
  */
-int websocket_recv(struct websocket *ws, int *type, void *buf, size_t n);
+int websocket_recv(websocket_t *ws, int *type, void *buf, size_t n);
 
 /*
  * Send data to the websocket server, return the number of bytes sent
  * successfully, return -1 on failure
  */
-int websocket_send(struct websocket *ws, int type, const void *buf, size_t n);
+int websocket_send(websocket_t *ws, int type, const void *buf, size_t n);
 
-void websocket_close(struct websocket *ws);
+void websocket_close(websocket_t *ws);
 
 #endif /* websocket.h */
