@@ -9,63 +9,64 @@ set(CMAKE_C_EXTENSIONS OFF)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 configure_file(
-    ${CMAKE_CURRENT_SOURCE_DIR}/config.h.in
-    ${CMAKE_CURRENT_BINARY_DIR}/config.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/config.h.in
+  ${CMAKE_CURRENT_BINARY_DIR}/config.h
 )
 
 include_directories(
-    ${CMAKE_CURRENT_BINARY_DIR}
-    ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CMAKE_CURRENT_SOURCE_DIR}/mbedtls/include
+  ${CMAKE_CURRENT_BINARY_DIR}
+  ${CMAKE_CURRENT_SOURCE_DIR}
+  ${CMAKE_CURRENT_SOURCE_DIR}/mbedtls/include
 )
 
 if(MSVC)
-    add_compile_options(/W3 /WX)
+  add_compile_options(/W3 /WX)
 else()
-    add_compile_options(-Wall -Wextra -pedantic -Werror -Wwrite-strings)
-    if(${CMAKE_C_COMPILER_ID} MATCHES "GNU")
-        set(CMAKE_EXE_LINKER_FLAGS "-static -O2")
-    endif()
+  add_compile_options(-Wall -Wextra -pedantic -Werror -Wwrite-strings)
+  if(${CMAKE_C_COMPILER_ID} MATCHES "GNU")
+    set(CMAKE_EXE_LINKER_FLAGS "-static -O2")
+  endif()
 endif()
 
 if(MINGW)
-    add_definitions(-D_WIN32_WINNT=_WIN32_WINNT_VISTA)
+  add_definitions(-D_WIN32_WINNT=_WIN32_WINNT_VISTA)
 endif()
 
 add_definitions(-DMBEDTLS_CONFIG_FILE="config.h")
 add_subdirectory(${PROJECT_SOURCE_DIR}/mbedtls/library)
 
-set(HEADERS
-    debug.h
-    dns.h
-    llist.h
-    net.h
-    proxy.h
-    socket.h
-    socks5.h
-    util.h
-    websocket.h
+set(
+  HEADERS
+  debug.h
+  dns.h
+  llist.h
+  net.h
+  proxy.h
+  socket.h
+  socks5.h
+  util.h
+  websocket.h
 )
 
-set(SOURCES
-    dns.c
-    llist.c
-    main.c
-    net.c
-    proxy.c
-    socket.c
-    socks5.c
-    util.c
-    websocket.c
+set(
+  SOURCES
+  dns.c
+  llist.c
+  main.c
+  net.c
+  proxy.c
+  socket.c
+  socks5.c
+  util.c
+  websocket.c
 )
 
 set(LIBS mbedtls)
 
 if(MSVC OR MINGW)
-    list(APPEND LIBS ws2_32)
-    list(APPEND LIBS iphlpapi)
+  list(APPEND LIBS ws2_32)
+  list(APPEND LIBS iphlpapi)
 endif()
 
 add_executable(agent ${HEADERS} ${SOURCES})
 target_link_libraries(agent PRIVATE ${LIBS})
-
