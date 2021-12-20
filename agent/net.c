@@ -7,27 +7,27 @@
 
 #include "debug.h"
 #include "dns.h"
-#include "llist.h"
 #include "util.h"
 #include "proxy.h"
 
 int net_connect(net_handle_t *net, const char *host, uint16_t port,
                 const struct proxy *proxy)
 {
-    struct lnode *node;
-    struct llist dns;
+    struct dns_node *dns, *ptr;
     int ret;
 
     memset(net, 0, sizeof(net_handle_t));
 
-    ret = dns_resolve(&dns, proxy ? proxy->host : host);
+    ret = dns_lookup(&dns, proxy ? proxy->host : host, DNS_A);
     if (ret == -1) {
         debugf("resolve %s error", host);
         return -1;
     }
 
-    for (node = dns.head; node; node = node->next) {
-        memcpy(&net->addr, ((struct dns_node *)node)->addr, sizeof(net->addr));
+    for (ptr = dns; ptr; ptr = ptr->next) {
+        /* assert(ptr->type == DNS_A); */
+        /* assert(ptr->data_len == sizeof(struct in_addr)); */
+        memcpy(&net->addr.sin_addr, ptr->data, ptr->data_len);
         net->addr.sin_family = AF_INET;
         net->addr.sin_port = htons(proxy ? proxy->port : port);
 
@@ -44,7 +44,7 @@ int net_connect(net_handle_t *net, const char *host, uint16_t port,
         break;
     }
 
-    dns_destroy(&dns);
+    dns_cleanup(dns);
 
     if (ret == -1) /* Did not successfully connect to the server */
         return -1;
