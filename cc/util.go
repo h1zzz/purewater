@@ -6,7 +6,8 @@ import (
 	"os"
 )
 
-func pathExists(path string) (bool, error) {
+// PathExists ...
+func PathExists(path string) (bool, error) {
 	_, err := os.Stat(path)
 	if err != nil {
 		if os.IsNotExist(err) {

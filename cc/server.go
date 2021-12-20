@@ -3,42 +3,28 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
-
-	"github.com/gorilla/websocket"
 )
-
-var upgrader = websocket.Upgrader{
-	ReadBufferSize:  1024,
-	WriteBufferSize: 1024,
-}
 
 func handleDevice(rw http.ResponseWriter, r *http.Request) {
 	log.Printf("[server] new connection from %s", r.RemoteAddr)
-	conn, err := upgrader.Upgrade(rw, r, nil)
+	conn, err := WebSocketUpgrade(rw, r)
 	if err != nil {
 		log.Print(err)
 		return
 	}
-	for {
-		s := ""
-		for i := 0; i < 200; i++ {
-			s += "helloworld"
-		}
-		conn.WriteMessage(websocket.TextMessage, []byte(s))
-		conn.WriteMessage(websocket.TextMessage, []byte("hello world"))
-		t, data, err := conn.ReadMessage()
-		if err != nil {
-			log.Print(err)
-			return
-		}
-		log.Printf("recv: %s", string(data))
-		conn.WriteMessage(t, data)
-	}
+	defer conn.Close()
+	// Handshake
+	buf := make([]byte, 32)
+	conn.Read(buf)
+	fmt.Println(string(buf))
+	conn.Write([]byte("server: helloworld"))
 }
 
-func serverRun(addr string) error {
+// ServerRun ...
+func ServerRun(addr string) error {
 	log.Printf("start server: %s", addr)
 	http.HandleFunc("/ws", handleDevice)
 	return http.ListenAndServeTLS(addr, "cert.pem", "key.pem", nil)

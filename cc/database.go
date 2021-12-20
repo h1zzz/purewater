@@ -11,6 +11,27 @@ import (
 	"gorm.io/gorm"
 )
 
+// Agent ...
+type Agent struct {
+	// ID agent id
+	ID int `gorm:"id"`
+	// IP address connected to C2
+	Host string `gorm:"host"`
+	// Agent status, 1 online and 0 offline
+	Status int `gorm:"status"`
+	// Device architecture information
+	Arch string `gorm:"arch"`
+	// Operating system
+	OS string `gorm:"os"`
+	// Agent version
+	Version string `gorm:"version"`
+	// Device host name
+	Hostname string `gorm:"hostname"`
+	// Time to connect to C2
+	Time time.Time `gorm:"time"`
+}
+
+// Device ...
 type Device struct {
 	ID       int       `gorm:"id"`
 	Host     string    `gorm:"host"`     // IP address connected to C2
@@ -22,6 +43,7 @@ type Device struct {
 	Time     time.Time `gorm:"time"`     // Time to connect to C2
 }
 
+// Address ...
 type Address struct {
 	ID       int    `gorm:"id"`
 	DeviceID int    `gorm:"device_id"`
@@ -30,6 +52,7 @@ type Address struct {
 	Mac      string `gorm:"mac"`  // Mac address of the network card
 }
 
+// Task ...
 type Task struct {
 	ID       int       `gorm:"id"`
 	DeviceID int       `gorm:"device_id"`
@@ -40,6 +63,7 @@ type Task struct {
 	Time     time.Time `gorm:"time"`   // Task execution time
 }
 
+// Satus ...
 type Status struct {
 	ID          int    `gorm:"id"`
 	DeviceID    int    `gorm:"device_id"`
@@ -47,23 +71,20 @@ type Status struct {
 	Status      int    `gorm:"status"`       // Service running status
 }
 
+// Database ...
 type Database struct {
 	sql *gorm.DB
 }
 
-var (
-	database *Database
-)
-
-func databaseInit(user, passwd, addr, dbName string) error {
+// NewDatabase ...
+func NewDatabase(user, passwd, addr, dbName string) (*Database, error) {
 	dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=utf8mb4&parseTime=True&loc=Local", user, passwd, addr, dbName)
-	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	sql, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
 		log.Print(err)
-		return err
+		return nil, err
 	}
-	database = &Database{
-		sql: db,
-	}
-	return nil
+	return &Database{
+		sql: sql,
+	}, nil
 }

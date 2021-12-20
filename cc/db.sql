@@ -12,7 +12,6 @@ CREATE TABLE `device` (
 	PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-
 CREATE TABLE `address` (
 	`id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
 	`device_id` INT NOT NULL,
@@ -21,7 +20,6 @@ CREATE TABLE `address` (
 	`mac` VARCHAR(32) NOT NULL, -- Mac address of the network card
 	PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
 
 CREATE TABLE `task` (
 	`id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -33,7 +31,6 @@ CREATE TABLE `task` (
 	`time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, -- Task execution time
 	PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
 
 CREATE TABLE `status` (
 	`id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
