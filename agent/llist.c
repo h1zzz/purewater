@@ -12,7 +12,7 @@ void llist_init(llist_t *list, lnode_find_t *_find, lnode_free_t *_free)
     list->tail = NULL;
 }
 
-void llist_insert_next(llist_t *list, lnode_t *pos, lnode_t *node)
+void llist_insert_next(llist_t *list, struct lnode *pos, struct lnode *node)
 {
     node->list = list;
     node->prev = pos;
@@ -37,7 +37,7 @@ void llist_insert_next(llist_t *list, lnode_t *pos, lnode_t *node)
     }
 }
 
-void llist_remove(llist_t *list, lnode_t *node)
+void llist_remove(llist_t *list, struct lnode *node)
 {
     if (node == list->head) {
         list->head = node->next;
@@ -58,9 +58,9 @@ void llist_remove(llist_t *list, lnode_t *node)
         list->_free(node);
 }
 
-lnode_t *llist_find(llist_t *list, const void *key)
+struct lnode *llist_find(llist_t *list, const void *key)
 {
-    lnode_t *ptr = NULL;
+    struct lnode *ptr = NULL;
 
     for (ptr = list->head; ptr; ptr = ptr->next) {
         if (list->_find && list->_find(ptr, key))
