@@ -500,7 +500,6 @@ int dns_lookup(struct dns_node **res, const char *name, dns_type_t type)
 
         ret = inet_pton(AF_INET, name, dns_node->data);
         if (ret <= 0) {
-            free(dns_node->data);
             free(dns_node);
             return -1;
         }
