@@ -14,23 +14,13 @@
 #include "debug.h"
 #include "socket.h"
 #include "util.h"
+#include "llist.h"
 
 #ifdef _MSC_VER
 #pragma comment(lib, "iphlpapi.lib")
 #endif /* _MSC_VER */
 
 #define DNS_PORT 53
-
-/*
- * TYPE values
- *
- * TYPE fields are used in resource records.  Note that these types are a
- * subset of QTYPEs.
- */
-#define TYPE_A 1     /* 1 a host address */
-#define TYPE_CNAME 5 /* 5 the canonical name for an alias */
-/* https://datatracker.ietf.org/doc/html/rfc3596#section-2.1 */
-#define TYPE_AAAA 28
 
 #define CLASS_IN 1
 
@@ -64,7 +54,7 @@ struct dns_rrs {
 #pragma pack(pop)
 
 struct nameserver_node {
-    lnode_t _node;
+    struct lnode _node;
     struct sockaddr *addr;
     socklen_t addrlen;
 };
@@ -76,7 +66,8 @@ static const char *default_nameserver[] = {
     "1.2.4.8",
 };
 
-static struct dns_node *dns_node_new(struct sockaddr_in *addr)
+#if 0
+static struct dns_node *dns_node_new(dns_type_t type, void *result)
 {
     struct dns_node *node;
 
@@ -86,15 +77,26 @@ static struct dns_node *dns_node_new(struct sockaddr_in *addr)
         return NULL;
     }
 
-    node->addr = addr;
+    node->type = type;
+
     return node;
 }
 
 static void dns_node_free(struct dns_node *node)
 {
-    free(node->addr);
+    switch (node->type) {
+    case DNS_A:
+        free(node->addr);
+        break;
+    case DNS_TXT:
+        free(node->txt);
+        break;
+    default:
+        debug("nosupported dns type");
+    }
     free(node);
 }
+#endif
 
 /*
  * TODO: Format multiple domain names.
@@ -123,7 +125,7 @@ static void format_dns_name(char *name)
     }
 }
 
-static int send_question(socket_handle_t *sock, const char *name)
+static int send_question(socket_handle_t *sock, const char *name, int type)
 {
     struct dns_header *header;
     struct dns_question *question;
@@ -163,7 +165,7 @@ static int send_question(socket_handle_t *sock, const char *name)
     if (n > sizeof(buf))
         return -1;
 
-    question->qtype = htons(TYPE_A);
+    question->qtype = htons(type);
     question->qclass = htons(CLASS_IN);
 
     if (socket_send(sock, buf, (int)n) == -1) {
@@ -226,7 +228,7 @@ static int append_nameserver(llist_t *list, const char *ip)
         return -1;
     }
 
-    llist_insert_next(list, list->tail, (lnode_t *)node);
+    llist_insert_next(list, list->tail, (struct lnode *)node);
     return 0;
 }
 
@@ -391,13 +393,12 @@ static int dns_read_name(char *data, char *ptr, char *name, size_t size)
     return count;
 }
 
-static int parse_answer(llist_t *list, char *data, int n)
+static int parse_answer(struct dns_node **res, char *data, int n)
 {
     uint16_t i, an_count, type, class, rd_length;
     struct dns_header *header;
     struct dns_rrs *answer;
     struct dns_node *dns_node;
-    struct sockaddr_in *addr;
     int pos, ret;
 
     pos = sizeof(struct dns_header);
@@ -435,71 +436,78 @@ static int parse_answer(llist_t *list, char *data, int n)
         type = ntohs(answer->type);
         class = ntohs(answer->class);
 
-        do {
-            if (class != CLASS_IN || type != TYPE_A) {
-                if (type != TYPE_CNAME) {
-                    debug("nosuppoted class or type.");
-                }
-                break;
-            }
+        if (class != CLASS_IN) {
+            debugf("nosuppoted class %d.", class);
+            return 0;
+        }
 
-            addr = calloc(1, sizeof(struct sockaddr_in));
-            if (!addr) {
-                debug("calloc error");
-                break;
-            }
+        dns_node = calloc(1, sizeof(struct dns_node));
+        if (!dns_node) {
+            debug("calloc error");
+            return -1;
+        }
 
-            memcpy(&addr->sin_addr, data + pos, rd_length);
+        /* assert(rd_length <= sizeof(dns_node->data)); */
 
-            dns_node = dns_node_new(addr);
-            if (!dns_node) {
-                free(addr);
-                break;
-            }
+        switch (type) {
+        case DNS_A:
+            dns_node->data_len = rd_length;
+            memcpy(dns_node->data, data + pos + 1, dns_node->data_len);
+            break;
+        case DNS_TXT:
+            dns_node->data_len = data[pos];
+            memcpy(dns_node->data, data + pos + 1, dns_node->data_len);
+            break;
+        default:
+            debugf("nosupported type: %d", type);
+            free(dns_node);
+            dns_node = NULL;
+            break;
+        }
 
-            llist_insert_next(list, list->tail, (lnode_t *)dns_node);
-        } while (0);
-
+        if (dns_node) {
+            dns_node->next = *res;
+            *res = dns_node;
+        }
         pos += rd_length;
     }
 
     return 0;
 }
 
-int dns_resolve(llist_t *list, const char *name)
+int dns_lookup(struct dns_node **res, const char *name, dns_type_t type)
 {
     socket_handle_t sock;
     int ret;
     llist_t nslist;
-    lnode_t *node;
+    struct lnode *node;
     struct nameserver_node *nameserv;
     char buf[10240];
-    struct sockaddr_in *addr;
     struct dns_node *dns_node;
 
-    llist_init(list, NULL, (lnode_free_t *)dns_node_free);
+    *res = NULL;
 
     /* If it is an IP address, it is directly resolved to an address. */
     if (check_is_ipv4(name)) {
-        addr = calloc(1, sizeof(struct sockaddr_in));
-        if (!addr) {
-            debug("calloc error");
-            return -1;
-        }
-
-        ret = inet_pton(AF_INET, name, &addr->sin_addr);
-        if (ret <= 0) {
-            free(addr);
-            return -1;
-        }
-
-        dns_node = dns_node_new(addr);
+        dns_node = calloc(1, sizeof(struct dns_node));
         if (!dns_node) {
             debug("dns_node_new error");
-            free(addr);
             return -1;
         }
-        llist_insert_next(list, list->tail, (lnode_t *)dns_node);
+
+        dns_node->type = type;
+        dns_node->data_len = sizeof(struct in_addr);
+
+        ret = inet_pton(AF_INET, name, dns_node->data);
+        if (ret <= 0) {
+            free(dns_node->data);
+            free(dns_node);
+            return -1;
+        }
+
+        dns_node->next = *res;
+        *res = dns_node;
+
         return 0;
     }
 
@@ -527,7 +535,7 @@ int dns_resolve(llist_t *list, const char *name)
             goto cleanup;
         }
 
-        ret = send_question(&sock, name);
+        ret = send_question(&sock, name, type);
         if (ret == -1) {
             debug("send question error");
             goto cleanup;
@@ -539,9 +547,10 @@ int dns_resolve(llist_t *list, const char *name)
             goto cleanup;
         }
 
-        ret = parse_answer(list, buf, ret);
+        ret = parse_answer(res, buf, ret);
         if (ret == -1) {
             debug("parse answer error");
+            dns_cleanup(*res);
             goto cleanup;
         }
     cleanup:
@@ -552,13 +561,19 @@ int dns_resolve(llist_t *list, const char *name)
 
     nameserver_destroy(&nslist);
 
-    if (list->head)
+    if (*res)
         return 0;
 
     return -1;
 }
 
-void dns_destroy(llist_t *list)
+void dns_cleanup(struct dns_node *head)
 {
-    llist_destroy(list);
+    struct dns_node *next, *curr = head;
+
+    while (curr) {
+        next = curr->next;
+        free(curr);
+        curr = next;
+    }
 }
