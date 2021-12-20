@@ -2,10 +2,6 @@
 
 #include "dns.h"
 
-#ifdef _WIN32
-#include <iphlpapi.h>
-#endif /* _WIN32 */
-
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -15,6 +11,10 @@
 #include "socket.h"
 #include "util.h"
 #include "llist.h"
+
+#ifdef _WIN32
+#include <iphlpapi.h>
+#endif /* _WIN32 */
 
 #ifdef _MSC_VER
 #pragma comment(lib, "iphlpapi.lib")
