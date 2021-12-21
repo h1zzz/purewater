@@ -2,8 +2,7 @@
 
 #include "util.h"
 
-#ifdef _WIN32
-#else  /* No define _WIN32 */
+#ifndef _WIN32
 #include <arpa/inet.h>
 #endif /* _WIN32 */
 
