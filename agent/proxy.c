@@ -12,7 +12,7 @@
 #include "socks5.h"
 #include "util.h"
 
-int proxy_socks5_handshake(net_handle_t *net, const char *host, uint16_t port,
+int proxy_socks5_handshake(net_t *net, const char *host, uint16_t port,
                            const char *username, const char *password)
 {
     int ret, atyp;
@@ -73,7 +73,7 @@ int proxy_socks5_handshake(net_handle_t *net, const char *host, uint16_t port,
  * User-Agent: client
  * Proxy-Connection: Keep-Alive
  */
-int proxy_https_handshake(net_handle_t *net, const char *host, uint16_t port,
+int proxy_https_handshake(net_t *net, const char *host, uint16_t port,
                           const char *username, const char *password)
 {
     unsigned char dst[1024] = {0}, src[512] = {0};

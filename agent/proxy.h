@@ -8,7 +8,7 @@
 #include "net.h"
 
 struct proxy {
-    int (*handshake)(net_handle_t *net, const char *host, uint16_t port,
+    int (*handshake)(net_t *net, const char *host, uint16_t port,
                      const char *username, const char *password);
     const char *host;
     uint16_t port;
@@ -16,10 +16,10 @@ struct proxy {
     const char *password;
 };
 
-int proxy_socks5_handshake(net_handle_t *net, const char *host, uint16_t port,
+int proxy_socks5_handshake(net_t *net, const char *host, uint16_t port,
                            const char *username, const char *password);
 
-int proxy_https_handshake(net_handle_t *net, const char *host, uint16_t port,
+int proxy_https_handshake(net_t *net, const char *host, uint16_t port,
                           const char *username, const char *password);
 
 #endif /* proxy.h */

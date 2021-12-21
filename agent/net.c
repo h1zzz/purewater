@@ -10,13 +10,13 @@
 #include "util.h"
 #include "proxy.h"
 
-int net_connect(net_handle_t *net, const char *host, uint16_t port,
+int net_connect(net_t *net, const char *host, uint16_t port,
                 const struct proxy *proxy)
 {
     struct dns_node *dns, *ptr;
     int ret;
 
-    memset(net, 0, sizeof(net_handle_t));
+    memset(net, 0, sizeof(net_t));
 
     ret = dns_lookup(&dns, proxy ? proxy->host : host, DNS_A);
     if (ret == -1) {
@@ -69,7 +69,7 @@ int net_connect(net_handle_t *net, const char *host, uint16_t port,
     return ret;
 }
 
-static void tls_free(net_handle_t *net)
+static void tls_free(net_t *net)
 {
     mbedtls_ssl_free(&net->ssl);
     mbedtls_ssl_config_free(&net->conf);
@@ -77,7 +77,7 @@ static void tls_free(net_handle_t *net)
     mbedtls_entropy_free(&net->entropy);
 }
 
-static int tls_init(net_handle_t *net)
+static int tls_init(net_t *net)
 {
     static const char *pers = "ssl_client";
     int ret;
@@ -114,15 +114,15 @@ err:
 
 static int tls_recv(void *ctx, unsigned char *buf, size_t len)
 {
-    return socket_recv(&((net_handle_t *)ctx)->sock, buf, len);
+    return socket_recv(&((net_t *)ctx)->sock, buf, len);
 }
 
 static int tls_send(void *ctx, const unsigned char *buf, size_t len)
 {
-    return socket_send(&((net_handle_t *)ctx)->sock, buf, len);
+    return socket_send(&((net_t *)ctx)->sock, buf, len);
 }
 
-int net_tls_handshake(net_handle_t *net)
+int net_tls_handshake(net_t *net)
 {
     int ret;
 
@@ -154,14 +154,14 @@ err:
     return -1;
 }
 
-int net_read(net_handle_t *net, void *buf, size_t size)
+int net_read(net_t *net, void *buf, size_t size)
 {
     if (net->tls)
         return mbedtls_ssl_read(&net->ssl, (unsigned char *)buf, size);
     return socket_recv(&net->sock, buf, size);
 }
 
-int net_readn(net_handle_t *net, void *buf, size_t n)
+int net_readn(net_t *net, void *buf, size_t n)
 {
     size_t nleft = n;
     char *ptr = buf;
@@ -180,14 +180,14 @@ int net_readn(net_handle_t *net, void *buf, size_t n)
     return n - nleft;
 }
 
-static int _net_write(net_handle_t *net, const void *data, size_t n)
+static int _net_write(net_t *net, const void *data, size_t n)
 {
     if (net->tls)
         return mbedtls_ssl_write(&net->ssl, (const unsigned char *)data, n);
     return socket_send(&net->sock, data, n);
 }
 
-int net_write(net_handle_t *net, const void *data, size_t n)
+int net_write(net_t *net, const void *data, size_t n)
 {
     const char *ptr = data;
     size_t nleft = n;
@@ -206,7 +206,7 @@ int net_write(net_handle_t *net, const void *data, size_t n)
     return n - nleft;
 }
 
-void net_close(net_handle_t *net)
+void net_close(net_t *net)
 {
     if (net->tls)
         tls_free(net);

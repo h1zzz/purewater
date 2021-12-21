@@ -15,7 +15,7 @@
 
 #define SOCKS5_VERSION 5
 
-int socks5_client_send_method(net_handle_t *net, int use_password)
+int socks5_client_send_method(net_t *net, int use_password)
 {
     unsigned char buf[32] = {0};
     uint8_t nmethods = 1; /* NO AUTHENTICATION REQUIRED */
@@ -77,7 +77,7 @@ int socks5_client_send_method(net_handle_t *net, int use_password)
     return buf[1];
 }
 
-int socks5_client_send_password_auth(net_handle_t *net, const char *uname,
+int socks5_client_send_password_auth(net_t *net, const char *uname,
                                      const char *passwd)
 {
     /*
@@ -149,7 +149,7 @@ int socks5_client_send_password_auth(net_handle_t *net, const char *uname,
     return buf[1] == 0;
 }
 
-static int socks5_client_read_response(net_handle_t *net)
+static int socks5_client_read_response(net_t *net)
 {
     unsigned char buf[256] = {0};
     int ret;
@@ -193,8 +193,8 @@ static int socks5_client_read_response(net_handle_t *net)
     return -1;
 }
 
-int socks5_client_request(net_handle_t *net, int cmd, int atyp,
-                          const char *dst_addr, uint16_t dst_port)
+int socks5_client_request(net_t *net, int cmd, int atyp, const char *dst_addr,
+                          uint16_t dst_port)
 {
     /*
      * The SOCKS request is formed as follows:

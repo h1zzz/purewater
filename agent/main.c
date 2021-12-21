@@ -4,11 +4,11 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#include "websocket.h"
 #include "config.h"
 #include "debug.h"
-#include "util.h"
-#include "websocket.h"
 #include "proxy.h"
+#include "util.h"
 #include "dns.h"
 #include "llist.h"
 

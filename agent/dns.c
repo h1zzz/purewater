@@ -7,8 +7,8 @@
 #include <stdio.h>
 #include <ctype.h>
 
-#include "debug.h"
 #include "socket.h"
+#include "debug.h"
 #include "util.h"
 #include "llist.h"
 
@@ -66,38 +66,6 @@ static const char *default_nameserver[] = {
     "1.2.4.8",
 };
 
-#if 0
-static struct dns_node *dns_node_new(dns_type_t type, void *result)
-{
-    struct dns_node *node;
-
-    node = calloc(1, sizeof(struct dns_node));
-    if (!node) {
-        debug("calloc error");
-        return NULL;
-    }
-
-    node->type = type;
-
-    return node;
-}
-
-static void dns_node_free(struct dns_node *node)
-{
-    switch (node->type) {
-    case DNS_A:
-        free(node->addr);
-        break;
-    case DNS_TXT:
-        free(node->txt);
-        break;
-    default:
-        debug("nosupported dns type");
-    }
-    free(node);
-}
-#endif
-
 /*
  * TODO: Format multiple domain names.
  * https://datatracker.ietf.org/doc/html/rfc1035#section-4.1.4
@@ -125,7 +93,7 @@ static void format_dns_name(char *name)
     }
 }
 
-static int send_question(socket_handle_t *sock, const char *name, int type)
+static int send_question(socket_t *sock, const char *name, int type)
 {
     struct dns_header *header;
     struct dns_question *question;
@@ -477,7 +445,7 @@ static int parse_answer(struct dns_node **res, char *data, int n)
 
 int dns_lookup(struct dns_node **res, const char *name, dns_type_t type)
 {
-    socket_handle_t sock;
+    socket_t sock;
     int ret;
     llist_t nslist;
     struct lnode *node;

@@ -7,7 +7,6 @@
 #include <time.h>
 
 #include "debug.h"
-#include "socket.h"
 
 #ifdef _WIN32
 #define PATH_SEPARATOR '\\'

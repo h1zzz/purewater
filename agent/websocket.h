@@ -26,7 +26,7 @@
 #define WEBSOCKET_PONG 0xa
 
 typedef struct websocket {
-    net_handle_t net;
+    net_t net;
     uint64_t remaining;
 } websocket_t;
 
