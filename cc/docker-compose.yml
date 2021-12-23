@@ -44,6 +44,7 @@ services:
     volumes:
       - /etc/localtime:/etc/localtime:ro
       # - /root/.ssh/authorized_keys:/root/.ssh/authorized_keys:ro
+    network_mode: host
     networks:
       - backend
 

@@ -1,6 +1,6 @@
 // MIT License Copyright (c) 2021, h1zzz
 
-package main
+package admin
 
 import (
 	"errors"
@@ -21,127 +21,6 @@ var (
 	ErrCommandNotFound = errors.New("command not found")
 )
 
-// AdminView ...
-type AdminView interface {
-	// Handler ...
-	Handler(admin *Admin, args []string) error
-	// Completer ...
-	Completer() *readline.PrefixCompleter
-	// Usage ...
-	Usage() string
-	// Name ...
-	Name() string
-}
-
-// AdminMenuView ...
-type AdminMenuView struct{}
-
-// Handler ...
-func (view *AdminMenuView) Handler(admin *Admin, args []string) error {
-	switch args[0] {
-	case "listener":
-		admin.PushView(&AdminListenerView{})
-	case "agent":
-		admin.PushView(&AdminAgentView{})
-	default:
-		return ErrCommandNotFound
-	}
-	return nil
-}
-
-// Complete ...
-func (view *AdminMenuView) Completer() *readline.PrefixCompleter {
-	return nil
-}
-
-// Usage ...
-func (view *AdminMenuView) Usage() string {
-	return ""
-}
-
-// Name ...
-func (view *AdminMenuView) Name() string {
-	return "~"
-}
-
-// AdminListenerView ...
-type AdminListenerView struct{}
-
-// Handler ...
-func (view *AdminListenerView) Handler(admin *Admin, args []string) error {
-	switch args[0] {
-	case "new":
-	case "delete":
-	case "list":
-	case "info":
-	default:
-		return ErrCommandNotFound
-	}
-	return nil
-}
-
-// Complete ...
-func (view *AdminListenerView) Completer() *readline.PrefixCompleter {
-	return nil
-}
-
-// Usage ...
-func (view *AdminListenerView) Usage() string {
-	return ""
-}
-
-// Name ...
-func (view *AdminListenerView) Name() string {
-	return "listener"
-}
-
-// AdminAgentView ...
-type AdminAgentView struct {
-	agent *Agent
-}
-
-// Handler ...
-func (view *AdminAgentView) Handler(admin *Admin, args []string) error {
-	switch args[0] {
-	case "new":
-	case "delete":
-	case "list":
-	case "info":
-	case "interact":
-		view.agent = &Agent{Host: "192.168.1.1"}
-		admin.RefreshView()
-	case "shell":
-	case "exec":
-	case "upload":
-	case "download":
-	case "proxy":
-	case "histroy":
-	case "help":
-	default:
-		return ErrCommandNotFound
-	}
-	return nil
-}
-
-// Completer ...
-func (view *AdminAgentView) Completer() *readline.PrefixCompleter {
-	return nil
-}
-
-// Usage ...
-func (view *AdminAgentView) Usage() string {
-	return ""
-}
-
-// Name ...
-func (view *AdminAgentView) Name() string {
-	name := "agent"
-	if view.agent != nil {
-		name += fmt.Sprintf("\033[90m[%s]\033[0m", view.agent.Host)
-	}
-	return name
-}
-
 // Admin ...
 type Admin struct {
 	user      string
@@ -151,7 +30,7 @@ type Admin struct {
 }
 
 // NewAdmin ...
-func NewAdmin(user string, rw io.ReadWriteCloser) (*Admin, error) {
+func New(user string, rw io.ReadWriteCloser) (*Admin, error) {
 	rl, err := readline.NewEx(&readline.Config{
 		Stdin:       rw,
 		StdinWriter: rw,

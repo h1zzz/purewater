@@ -11,6 +11,9 @@ import (
 	"time"
 
 	"github.com/gliderlabs/ssh"
+	"github.com/h1zzz/purewater/cc/admin"
+	"github.com/h1zzz/purewater/cc/util"
+	"github.com/joho/godotenv"
 )
 
 const (
@@ -25,12 +28,18 @@ const (
 		"\n"
 )
 
+func init() {
+	if err := godotenv.Load(); err != nil && !os.IsNotExist(err) {
+		log.Fatal(err)
+	}
+}
+
 func main() {
 
 	var (
-		sshAddr   = GetEnv("SSH_ADDR")
-		sshUser   = GetEnv("SSH_USER")
-		sshPasswd = GetEnv("SSH_PASSWORD")
+		sshAddr   = os.Getenv("SSH_ADDR")
+		sshUser   = os.Getenv("SSH_USER")
+		sshPasswd = os.Getenv("SSH_PASSWORD")
 	)
 
 	options := []ssh.Option{ssh.HostKeyFile("key.pem")}
@@ -52,7 +61,7 @@ func main() {
 	}
 
 	keyPath := path.Join(homeDir, ".ssh/authorized_keys")
-	exists, err := PathExists(keyPath)
+	exists, err := util.PathExists(keyPath)
 	if err != nil {
 		log.Panic(err)
 	}
@@ -83,7 +92,7 @@ func main() {
 		session.Write([]byte(sshWelcome + fmt.Sprintf("%s login from %s.\n",
 			time.Now().Format("Mon Jan 2 15:04:05 MST 2006"), session.RemoteAddr().String())))
 
-		admin, err := NewAdmin(session.User(), session)
+		admin, err := admin.New(session.User(), session)
 		if err != nil {
 			log.Print(err)
 			return
