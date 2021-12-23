@@ -2,7 +2,9 @@
 
 #include "util.h"
 
-#ifndef _WIN32
+#ifdef _WIN32
+#include <windows.h>
+#else /* No define _WIN32 */
 #include <arpa/inet.h>
 #include <unistd.h>
 #endif /* _WIN32 */
