@@ -4,10 +4,11 @@
 
 #include <stddef.h>
 
-void llist_init(llist_t *list, lnode_find_t *_find, lnode_free_t *_free)
+void llist_init(llist_t *list, lnode_find_t *lnode_find,
+                lnode_free_t *lnode_free)
 {
-    list->_find = _find;
-    list->_free = _free;
+    list->lnode_find = lnode_find;
+    list->lnode_free = lnode_free;
     list->head = NULL;
     list->tail = NULL;
 }
@@ -54,8 +55,8 @@ void llist_remove(llist_t *list, struct lnode *node)
             list->tail = node->prev;
     }
 
-    if (list->_free)
-        list->_free(node);
+    if (list->lnode_free)
+        list->lnode_free(node);
 }
 
 struct lnode *llist_find(llist_t *list, const void *key)
@@ -63,7 +64,7 @@ struct lnode *llist_find(llist_t *list, const void *key)
     struct lnode *ptr = NULL;
 
     for (ptr = list->head; ptr; ptr = ptr->next) {
-        if (list->_find && list->_find(ptr, key))
+        if (list->lnode_find && list->lnode_find(ptr, key))
             break;
     }
     return ptr;

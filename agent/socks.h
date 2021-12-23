@@ -2,10 +2,10 @@
  * MIT License Copyright (c) 2021, h1zzz
  */
 
-#ifndef _SOCKS5_H
-#define _SOCKS5_H
+#ifndef _SOCKS_H
+#define _SOCKS_H
 
-#include "net.h"
+#include "connection.h"
 
 /* Auth method */
 #define SOCKS5_NO_AUTHENTICATION_REQUIRED 0x00
@@ -37,24 +37,26 @@
 #define SOCKS5_ADDRESS_TYPE_NOT_SUPPORTED 0x08
 /*  0x09 to X'FF' unassigned   0x09 */
 
+#if 0
 /*
  * Send a negotiated authentication request to the socks5 server, if it fails,
  * it will return -1, if it succeeds, it will return the authentication method
  */
-int socks5_client_send_method(net_t *net, int use_password);
+int socks5_client_send_method(tcpconn_t *conn, int use_password);
 
 /*
  * Use user name and password to authenticate to the socks5 server, return 0 if
  * the authentication succeeds, and return -1 if it fails
  */
-int socks5_client_send_password_auth(net_t *net, const char *uname,
+int socks5_client_send_password_auth(tcpconn_t *conn, const char *uname,
                                      const char *passwd);
 
 /*
  * Send a detailed proxy request to the socks5 server, return socks5 replies
  * code
  */
-int socks5_client_request(net_t *net, int cmd, int atyp, const char *dst_addr,
-                          uint16_t dst_port);
+int socks5_client_request(tcpconn_t *conn, int cmd, int atyp,
+                          const char *dst_addr, uint16_t dst_port);
+#endif
 
-#endif /* socks5.h */
+#endif /* socks.h */

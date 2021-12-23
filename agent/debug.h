@@ -6,7 +6,6 @@
 #ifdef NDEBUG
 #else /* No define NDEBUG */
 #include <stdio.h>
-#include <stdarg.h>
 
 #include "config.h"
 #include "util.h"

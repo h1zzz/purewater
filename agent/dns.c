@@ -2,19 +2,22 @@
 
 #include "dns.h"
 
+#ifdef _WIN32
+#include <ws2tcpip.h>
+#include <iphlpapi.h>
+#else /* No define _WIN32 */
+#include <arpa/inet.h>
+#endif /* _WIN32 */
+
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <ctype.h>
 
-#include "socket.h"
 #include "debug.h"
 #include "util.h"
 #include "llist.h"
-
-#ifdef _WIN32
-#include <iphlpapi.h>
-#endif /* _WIN32 */
+#include "socket.h"
 
 #ifdef _MSC_VER
 #pragma comment(lib, "iphlpapi.lib")
@@ -53,18 +56,48 @@ struct dns_rrs {
 };
 #pragma pack(pop)
 
-struct nameserver_node {
+struct ns_node {
     struct lnode _node;
-    struct sockaddr *addr;
-    socklen_t addrlen;
+    char *host;
+    uint16_t port;
 };
 
-static const char *default_nameserver[] = {
-    "8.8.8.8",
-    "9.9.9.9",
-    "1.1.1.1",
-    "1.2.4.8",
+struct dns_server {
+    struct lnode node;
+    char *host;
+    uint16_t port;
 };
+
+struct dns {
+    llist_t dns_servers;
+};
+
+static struct dns_server *dns_server_new(const char *host, uint16_t port)
+{
+    struct dns_server *server;
+
+    server = calloc(1, sizeof(struct dns_server));
+    if (!server) {
+        debug("calloc error");
+        return NULL;
+    }
+
+    server->host = xstrdup(host);
+    if (!server->host) {
+        debug("xstrdup error");
+        free(server);
+        return NULL;
+    }
+
+    server->port = port;
+    return server;
+}
+
+static void dns_server_free(struct dns_server *server)
+{
+    free(server->host);
+    free(server);
+}
 
 /*
  * TODO: Format multiple domain names.
@@ -93,7 +126,7 @@ static void format_dns_name(char *name)
     }
 }
 
-static int send_question(socket_t *sock, const char *name, int type)
+static int send_question(socket_t sock, const char *name, int type)
 {
     struct dns_header *header;
     struct dns_question *question;
@@ -136,192 +169,12 @@ static int send_question(socket_t *sock, const char *name, int type)
     question->qtype = htons(type);
     question->qclass = htons(CLASS_IN);
 
-    if (socket_send(sock, buf, (int)n) == -1) {
-        debug("send dns question error");
+    if (xsend(sock, buf, (int)n) == SOCK_ERR) {
+        debug("xsend error");
         return -1;
     }
 
     return 0;
-}
-
-static struct nameserver_node *nameserver_node_new(struct sockaddr *addr,
-                                                   socklen_t addrlen)
-{
-    struct nameserver_node *node;
-
-    node = calloc(1, sizeof(struct nameserver_node));
-    if (!node) {
-        debug("calloc error");
-        return NULL;
-    }
-
-    node->addr = addr;
-    node->addrlen = addrlen;
-
-    return node;
-}
-
-static void nameserver_node_free(struct nameserver_node *node)
-{
-    free(node->addr);
-    free(node);
-}
-
-static int append_nameserver(llist_t *list, const char *ip)
-{
-    struct nameserver_node *node;
-    struct sockaddr_in *addr;
-    int ret;
-
-    addr = calloc(1, sizeof(struct sockaddr_in));
-    if (!addr) {
-        debug("calloc error");
-        return -1;
-    }
-
-    ret = inet_pton(AF_INET, ip, &addr->sin_addr);
-    if (ret <= 0) {
-        debug("inet_pton error");
-        free(addr);
-        return -1;
-    }
-
-    addr->sin_family = AF_INET;
-    addr->sin_port = htons(DNS_PORT);
-    node = nameserver_node_new((struct sockaddr *)addr,
-                               (socklen_t)sizeof(struct sockaddr_in));
-    if (!node) {
-        debug("nameserver_node_new error");
-        free(addr);
-        return -1;
-    }
-
-    llist_insert_next(list, list->tail, (struct lnode *)node);
-    return 0;
-}
-
-#ifdef _WIN32
-static int nameserver_add_local_dns_nameserver(llist_t *list)
-{
-    FIXED_INFO *fInfo;
-    ULONG fInfoLen;
-    IP_ADDR_STRING *ipAddr;
-
-    fInfo = calloc(1, sizeof(FIXED_INFO));
-    if (!fInfo) {
-        debug("calloc error");
-        return -1;
-    }
-    fInfoLen = sizeof(FIXED_INFO);
-
-    if (GetNetworkParams(fInfo, &fInfoLen) == ERROR_BUFFER_OVERFLOW) {
-        free(fInfo);
-        fInfo = calloc(1, fInfoLen);
-        if (!fInfo) {
-            debug("calloc error");
-            return -1;
-        }
-    }
-
-    if (GetNetworkParams(fInfo, &fInfoLen) != NO_ERROR) {
-        free(fInfo);
-        return -1;
-    }
-
-    ipAddr = &fInfo->DnsServerList;
-
-    while (ipAddr) {
-        if (!check_is_ipv4(ipAddr->IpAddress.String)) {
-            debug("Currently only supports the use of IPv4 DNS servers");
-            ipAddr = ipAddr->Next;
-            continue;
-        }
-        if (append_nameserver(list, ipAddr->IpAddress.String) == -1) {
-            debug("append_nameserver error");
-            goto err;
-        }
-        ipAddr = ipAddr->Next;
-    }
-
-    free(fInfo);
-    return 0;
-err:
-    free(fInfo);
-    return -1;
-}
-#else  /* No defined _WIN32 */
-static int nameserver_add_local_dns_nameserver(llist_t *list)
-{
-    FILE *fp;
-    char buf[256], *ptr;
-
-    fp = fopen("/etc/resolv.conf", "r");
-    if (!fp) {
-        debug("fopen /etc/resolv.conf error");
-        return -1;
-    }
-
-    while (1) {
-        memset(buf, 0, sizeof(buf));
-        if (fgets(buf, sizeof(buf) - 1, fp) == NULL)
-            break;
-
-        if (buf[0] == '#') /* skip comment */
-            continue;
-
-        ptr = strchr(buf, '\n');
-        if (!ptr)
-            continue;
-
-        *ptr = '\0';
-
-        if (strncmp(buf, "nameserver ", 11) != 0)
-            continue;
-
-        ptr = &buf[11];
-
-        if (!check_is_ipv4(ptr)) {
-            debug("Currently only supports the use of IPv4 DNS servers");
-            continue;
-        }
-
-        if (append_nameserver(list, ptr) == -1) {
-            debug("append_nameserver error");
-            goto err;
-        }
-    }
-
-    fclose(fp);
-    return 0;
-err:
-    fclose(fp);
-    return -1;
-}
-#endif /* _WIN32 */
-
-static void nameserver_destroy(llist_t *list)
-{
-    llist_destroy(list);
-}
-
-static int nameserver_init(llist_t *list)
-{
-    size_t i, n;
-
-    llist_init(list, NULL, (lnode_free_t *)nameserver_node_free);
-    nameserver_add_local_dns_nameserver(list);
-
-    n = sizeof(default_nameserver) / sizeof(default_nameserver[0]);
-    for (i = 0; i < n; i++)
-        if (append_nameserver(list, default_nameserver[i]) == -1) {
-            debug("append_nameserver error");
-            goto err;
-        }
-
-    return 0;
-err:
-    nameserver_destroy(list);
-    return -1;
 }
 
 static int dns_read_name(char *data, char *ptr, char *name, size_t size)
@@ -420,7 +273,12 @@ static int parse_answer(struct dns_node **res, char *data, int n)
         switch (type) {
         case DNS_A:
             dns_node->data_len = rd_length;
-            memcpy(dns_node->data, data + pos + 1, dns_node->data_len);
+            if (!inet_ntop(AF_INET, data + pos, dns_node->data,
+                           sizeof(dns_node->data))) {
+                debug("inet_ntop error");
+                free(dns_node);
+                dns_node = NULL;
+            }
             break;
         case DNS_TXT:
             dns_node->data_len = data[pos];
@@ -437,110 +295,262 @@ static int parse_answer(struct dns_node **res, char *data, int n)
             dns_node->next = *res;
             *res = dns_node;
         }
+
         pos += rd_length;
     }
 
     return 0;
 }
 
-int dns_lookup(struct dns_node **res, const char *name, dns_type_t type)
+dns_t *dns_new(void)
 {
-    socket_t sock;
-    int ret;
-    llist_t nslist;
-    struct lnode *node;
-    struct nameserver_node *nameserv;
-    char buf[10240];
-    struct dns_node *dns_node;
+    dns_t *dns;
 
-    *res = NULL;
-
-    /* If it is an IP address, it is directly resolved to an address. */
-    if (check_is_ipv4(name)) {
-        dns_node = calloc(1, sizeof(struct dns_node));
-        if (!dns_node) {
-            debug("dns_node_new error");
-            return -1;
-        }
-
-        dns_node->type = type;
-        dns_node->data_len = sizeof(struct in_addr);
-
-        ret = inet_pton(AF_INET, name, dns_node->data);
-        if (ret <= 0) {
-            free(dns_node);
-            return -1;
-        }
-
-        dns_node->next = *res;
-        *res = dns_node;
-
-        return 0;
+    dns = calloc(1, sizeof(dns_t));
+    if (!dns) {
+        debug("calloc error");
+        return NULL;
     }
 
-    /* If there are records in the hosts file, get the address from the
-       hosts file, unsupported. */
+    llist_init(&dns->dns_servers, NULL, (lnode_free_t *)dns_server_free);
 
-    if (nameserver_init(&nslist) == -1) {
-        debug("nameserver_init error");
+    return dns;
+}
+
+int dns_add_dns_server(dns_t *dns, const char *host, uint16_t port)
+{
+    struct dns_server *server;
+
+    server = dns_server_new(host, port);
+    if (!server) {
+        debug("dns_server_new error");
         return -1;
     }
 
-    for (node = nslist.head; node; node = node->next) {
-        nameserv = (struct nameserver_node *)node;
-        ret = socket_open(&sock, PF_INET, SOCK_DGRAM, IPPROTO_IP);
-        if (ret == -1) {
-            debug("open socket error");
-            perror("socket_open");
+    llist_insert_next(&dns->dns_servers, dns->dns_servers.tail,
+                      (struct lnode *)server);
+    return 0;
+}
+
+struct dns_node *dns_lookup(dns_t *dns, const char *name, int type)
+{
+    struct dns_node *dns_node, *new_node;
+    struct dns_server *server;
+    struct lnode *lnode;
+    char buf[10240];
+    socket_t sock;
+    int ret;
+
+    dns_node = NULL;
+
+    if (check_is_ipv4(name)) {
+        new_node = calloc(1, sizeof(struct dns_node));
+        if (!new_node) {
+            debug("calloc error");
+            return NULL;
+        }
+
+        new_node->type = type;
+        new_node->data_len = sizeof(struct in_addr);
+
+        ret = inet_pton(AF_INET, name, dns_node->data);
+        if (ret <= 0) {
+            free(new_node);
+            return NULL;
+        }
+
+        new_node->next = dns_node;
+        dns_node = new_node;
+
+        return dns_node;
+    }
+
+    if (!dns->dns_servers.head) {
+        debug("no dns_server");
+        return NULL;
+    }
+
+    for (lnode = dns->dns_servers.head; lnode; lnode = lnode->next) {
+        server = (struct dns_server *)lnode;
+
+        sock = xsocket(SOCK_UDP);
+        if (sock == SOCK_INVAL) {
+            debug("xsocket error");
             continue;
         }
 
-        /* TODO: supported IPv6 name server. */
-        ret = socket_connect(&sock, nameserv->addr, nameserv->addrlen);
-        if (ret == -1) {
-            debug("socket_connect error");
+        ret = xconnect(sock, server->host, server->port);
+        if (ret == SOCK_ERR) {
+            debug("xconnect error");
             goto cleanup;
         }
 
-        ret = send_question(&sock, name, type);
+        ret = send_question(sock, name, type);
         if (ret == -1) {
-            debug("send question error");
+            debug("send_question error");
             goto cleanup;
         }
 
-        ret = socket_recv(&sock, buf, sizeof(buf));
-        if (ret == -1) {
-            debug("recv answer error");
+        ret = xrecv(sock, buf, sizeof(buf));
+        if (ret == SOCK_ERR) {
+            debug("xrecv error");
             goto cleanup;
         }
 
-        ret = parse_answer(res, buf, ret);
+        ret = parse_answer(&dns_node, buf, ret);
         if (ret == -1) {
-            debug("parse answer error");
-            dns_cleanup(*res);
+            debug("parse_answer error");
             goto cleanup;
         }
+
     cleanup:
-        socket_close(&sock);
+        xclose(sock);
         if (ret != -1)
             break;
     }
 
-    nameserver_destroy(&nslist);
-
-    if (*res)
-        return 0;
-
-    return -1;
+    return dns_node;
 }
 
-void dns_cleanup(struct dns_node *head)
+void dns_node_cleanup(struct dns_node *dns_node)
 {
-    struct dns_node *next, *curr = head;
+    struct dns_node *next, *curr = dns_node;
 
     while (curr) {
         next = curr->next;
         free(curr);
         curr = next;
     }
+}
+
+void dns_free(dns_t *dns)
+{
+    llist_destroy(&dns->dns_servers);
+    free(dns);
+}
+
+#ifdef _WIN32
+static int dns_add_dns_server_for_local(dns_t *dns)
+{
+    FIXED_INFO *fInfo;
+    ULONG fInfoLen;
+    IP_ADDR_STRING *ipAddr;
+
+    fInfo = calloc(1, sizeof(FIXED_INFO));
+    if (!fInfo) {
+        debug("calloc error");
+        return -1;
+    }
+    fInfoLen = sizeof(FIXED_INFO);
+
+    if (GetNetworkParams(fInfo, &fInfoLen) == ERROR_BUFFER_OVERFLOW) {
+        free(fInfo);
+        fInfo = calloc(1, fInfoLen);
+        if (!fInfo) {
+            debug("calloc error");
+            return -1;
+        }
+    }
+
+    if (GetNetworkParams(fInfo, &fInfoLen) != NO_ERROR) {
+        free(fInfo);
+        return -1;
+    }
+
+    ipAddr = &fInfo->DnsServerList;
+
+    while (ipAddr) {
+        if (!check_is_ipv4(ipAddr->IpAddress.String)) {
+            debug("Currently only supports the use of IPv4 DNS servers");
+            ipAddr = ipAddr->Next;
+            continue;
+        }
+        if (dns_add_dns_server(dns, ipAddr->IpAddress.String, DNS_PORT) == -1) {
+            debug("dns_add_dns_server error");
+            goto err;
+        }
+        ipAddr = ipAddr->Next;
+    }
+
+    free(fInfo);
+    return 0;
+
+err:
+    free(fInfo);
+    return -1;
+}
+#else  /* No defined _WIN32 */
+static int dns_add_dns_server_for_local(dns_t *dns)
+{
+    FILE *fp;
+    char buf[256], *ptr;
+
+    fp = fopen("/etc/resolv.conf", "r");
+    if (!fp) {
+        debug("fopen /etc/resolv.conf error");
+        return -1;
+    }
+
+    while (1) {
+        memset(buf, 0, sizeof(buf));
+        if (fgets(buf, sizeof(buf) - 1, fp) == NULL)
+            break;
+
+        if (buf[0] == '#') /* skip comment */
+            continue;
+
+        ptr = strchr(buf, '\n');
+        if (!ptr)
+            continue;
+
+        *ptr = '\0';
+
+        if (strncmp(buf, "nameserver ", 11) != 0)
+            continue;
+
+        ptr = &buf[11];
+
+        if (!check_is_ipv4(ptr)) {
+            debug("currently only supports the use of IPv4 DNS servers");
+            continue;
+        }
+
+        if (dns_add_dns_server(dns, ptr, DNS_PORT) == -1) {
+            debug("dns_add_dns_server error");
+            goto err;
+        }
+    }
+
+    fclose(fp);
+    return 0;
+
+err:
+    fclose(fp);
+    return -1;
+}
+#endif /* _WIN32 */
+
+struct dns_node *dns_lookup_ret(const char *host, int type)
+{
+    static const char *dns_host[] = {"8.8.8.8", "9.9.9.9", "1.1.1.1", "1.2.4.8",
+                                     NULL};
+    struct dns_node *dns_node;
+    dns_t *dns;
+    int i;
+
+    dns = dns_new();
+    if (!dns) {
+        debug("dns_new error");
+        return NULL;
+    }
+
+    dns_add_dns_server_for_local(dns);
+
+    for (i = 0; dns_host[i]; i++)
+        dns_add_dns_server(dns, dns_host[i], DNS_PORT);
+
+    dns_node = dns_lookup(dns, host, type);
+    dns_free(dns);
+
+    return dns_node;
 }

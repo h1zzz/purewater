@@ -37,28 +37,37 @@ add_subdirectory(${PROJECT_SOURCE_DIR}/mbedtls/library)
 
 set(
   HEADERS
+  connection.h
   debug.h
   dns.h
+  http.h
   llist.h
-  net.h
+  platform.h
   proxy.h
+  proxy_https.h
+  proxy_socks.h
   socket.h
-  socks5.h
+  socks.h
+  # tunnel_dns.h
+  # tunnel_http.h
   util.h
-  websocket.h
 )
 
 set(
   SOURCES
+  connection.c
   dns.c
+  http.c
   llist.c
   main.c
-  net.c
-  proxy.c
+  platform.c
+  proxy_https.c
+  proxy_socks.c
   socket.c
-  socks5.c
+  socks.c
+  # tunnel_dns.c
+  # tunnel_http.c
   util.c
-  websocket.c
 )
 
 set(LIBS mbedtls)

@@ -3,13 +3,18 @@
 #include "socket.h"
 
 #ifdef _WIN32
+#include <winsock2.h>
+#include <ws2tcpip.h>
 #include <windows.h>
 #else /* No define _WIN32 */
 #include <sys/socket.h>
+#include <arpa/inet.h>
 #include <unistd.h>
 #include <errno.h>
 #include <fcntl.h>
 #endif /* _WIN32 */
+
+#include <string.h>
 
 #include "debug.h"
 
@@ -18,239 +23,257 @@
 #endif /* _MSC_VER */
 
 #ifdef _WIN32
-static int socket_init(void)
+typedef int socklen_t;
+#else /* No define _WIN32 */
+#define SOCKET_ERROR -1
+#define INVALID_SOCKET -1
+#endif /* _WIN32 */
+
+#ifdef _WIN32
+static int wsa_init(void)
 {
     static int inited = 0;
     WSADATA wsaData;
-    int ret;
 
-    if (inited)
-        return 0;
-
-    ret = WSAStartup(MAKEWORD(2, 2), &wsaData);
-    if (ret != 0)
-        return -1;
-
-    inited = 1;
-    return 0;
+    if (!inited) {
+        if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
+            debug("WSAStartup error");
+            return SOCK_ERR;
+        }
+        inited = 1;
+    }
+    return SOCK_OK;
 }
 #endif /* _WIN32 */
 
-int socket_open(socket_t *sock, int af, int type, int protocol)
+static int init_sockaddr(struct sockaddr_in *addr, const char *host,
+                         uint16_t port)
 {
-#ifdef _WIN32
-    if (socket_init() == -1) {
-        debug("socket_init error");
-        return -1;
+    memset(addr, 0, sizeof(struct sockaddr_in));
+
+    addr->sin_family = AF_INET;
+    addr->sin_port = htons(port);
+
+    if (inet_pton(AF_INET, host, &addr->sin_addr) <= 0) {
+        debug("inet_pton error");
+        return SOCK_ERR;
     }
-#endif /* _WIN32 */
-    sock->fd = socket(af, type, protocol);
-#ifdef _WIN32
-    if (sock->fd == INVALID_SOCKET) {
-        debug("create socket error");
-        return -1;
-    }
-#else  /* No defined _WIN32 */
-    if (sock->fd == -1) {
-        debug("create socket error");
-        return -1;
-    }
-#endif /* _WIN32 */
-    return 0;
+    return SOCK_OK;
 }
 
-int socket_connect(socket_t *sock, const struct sockaddr *addr,
-                   socklen_t addrlen)
+socket_t xsocket(int type)
 {
+    socket_t sock;
+
+#ifdef _WIN32
+    if (wsa_init() == SOCK_ERR) {
+        debug("wsa_init error");
+        return SOCK_INVAL;
+    }
+#endif /* _WIN32 */
+
+    type = (type == SOCK_TCP) ? SOCK_STREAM : SOCK_DGRAM;
+
+    sock = socket(PF_INET, type, IPPROTO_IP);
+    if (sock == SOCK_INVAL) {
+        debug("socket error");
+    }
+    return sock;
+}
+
+int xconnect(socket_t sock, const char *host, uint16_t port)
+{
+    struct sockaddr_in addr;
     int ret;
 
+    if (init_sockaddr(&addr, host, port) == -1) {
+        debug("init_sockaddr error");
+        return SOCK_ERR;
+    }
 again:
-    ret = connect(sock->fd, addr, addrlen);
+    ret = connect(sock, (struct sockaddr *)&addr, sizeof(addr));
+    if (ret == SOCK_ERR) {
 #ifdef _WIN32
-    if (ret == SOCKET_ERROR) {
         if (WSAGetLastError() == WSAEINTR)
             goto again;
-        debug("connect error");
-        return -1;
-    }
-#else  /* No defined _WIN32 */
-    if (ret == -1) {
+#else  /* No define _WIN32 */
         if (errno == EINTR)
             goto again;
         debug("connect error");
-        return -1;
-    }
+        return SOCK_ERR;
 #endif /* _WIN32 */
-    return 0;
+    }
+    return SOCK_OK;
 }
 
-int socket_listen(socket_t *sock, const struct sockaddr *addr,
-                  socklen_t addrlen)
+int xlisten(socket_t sock, const char *host, uint16_t port)
+{
+    struct sockaddr_in addr;
+    int ret;
+
+    if (init_sockaddr(&addr, host, port) == -1) {
+        debug("init_sockaddr error");
+        return SOCK_ERR;
+    }
+
+    ret = bind(sock, (struct sockaddr *)&addr, sizeof(addr));
+    if (ret == SOCK_ERR) {
+        debug("bind error");
+        return SOCK_ERR;
+    }
+
+    ret = listen(sock, SOMAXCONN);
+    if (ret == SOCK_ERR) {
+        debug("listen error");
+        return SOCK_ERR;
+    }
+
+    return SOCK_OK;
+}
+
+socket_t xaccept(socket_t sock, struct xsockaddr *addr)
+{
+    struct sockaddr_in si;
+    socklen_t silen;
+    socket_t conn;
+
+    memset(&si, 0, sizeof(si));
+    silen = (socklen_t)sizeof(si);
+
+again:
+    conn = accept(sock, (struct sockaddr *)&si, &silen);
+    if (conn == SOCK_INVAL) {
+#ifdef _WIN32
+        if (WSAGetLastError() == WSAEINTR)
+            goto again;
+#else  /* No define _WIN32 */
+        if (errno == EINTR)
+            goto again;
+#endif /* _WIN32 */
+        debug("accept error");
+        return SOCK_INVAL;
+    }
+
+    if (addr) {
+        if (inet_ntop(AF_INET, &si.sin_addr.s_addr, addr->host,
+                      sizeof(addr->host)) == NULL) {
+            debug("inet_ntop error");
+            xclose(conn);
+            return SOCK_INVAL;
+        }
+        addr->port = ntohs(si.sin_port);
+    }
+    return conn;
+}
+
+int xrecv(socket_t sock, void *buf, size_t size)
 {
     int ret;
 
-    ret = bind(sock->fd, addr, addrlen);
-#ifdef _WIN32
-    if (ret == SOCKET_ERROR) {
-        debug("bind address error");
-        return -1;
-    }
-#else  /* No defined _WIN32 */
-    if (ret == -1) {
-        debug("bind address error");
-        return -1;
-    }
-#endif /* _WIN32 */
-
-    ret = listen(sock->fd, SOMAXCONN);
-#ifdef _WIN32
-    if (ret == SOCKET_ERROR) {
-        debug("listen error");
-        return -1;
-    }
-#else  /* No defined _WIN32 */
-    if (ret == -1) {
-        debug("listen error");
-        return -1;
-    }
-#endif /* _WIN32 */
-
-    return 0;
-}
-
-int socket_accept(socket_t *sock, socket_t *conn, struct sockaddr *addr,
-                  socklen_t *addrlen)
-{
-again:
-    conn->fd = accept(sock->fd, addr, addrlen);
-#ifdef _WIN32
-    if (conn->fd == INVALID_SOCKET) {
-        if (WSAGetLastError() == WSAEINTR)
-            goto again;
-        debug("accept error");
-        return -1;
-    }
-#else  /* No defined _WIN32 */
-    if (conn->fd == -1) {
-        if (errno == EINTR)
-            goto again;
-        debug("accept error");
-        return -1;
-    }
-#endif /* _WIN32 */
-    return 0;
-}
-
-int socket_recv(socket_t *sock, void *buf, size_t size)
-{
-    int nread;
-
 again:
 #ifdef _WIN32
-    nread = recv(sock->fd, buf, (int)size, 0);
-    if (nread == SOCKET_ERROR) {
+    ret = recv(sock, buf, (int)size, 0);
+    if (ret == SOCK_ERR) {
         if (WSAGetLastError() == WSAEINTR)
             goto again;
         debug("recv error");
-        return -1;
+        return SOCK_ERR;
     }
-#else  /* No defined _WIN32 */
-    nread = recv(sock->fd, buf, size, MSG_NOSIGNAL);
-    if (nread == -1) {
+#else  /* No define _WIN32 */
+    ret = recv(sock, buf, size, MSG_NOSIGNAL);
+    if (ret == SOCK_ERR) {
         if (errno == EINTR)
             goto again;
         debug("recv error");
-        return -1;
+        return SOCK_ERR;
     }
 #endif /* _WIN32 */
-    return nread;
+    return ret;
 }
 
-int socket_send(socket_t *sock, const void *data, size_t n)
+int xsend(socket_t sock, const void *data, size_t len)
 {
-    int nwrite;
+    int ret;
 
 again:
 #ifdef _WIN32
-    nwrite = send(sock->fd, data, (int)n, 0);
-    if (nwrite == SOCKET_ERROR) {
+    ret = send(sock, data, (int)len, 0);
+    if (ret == SOCK_ERR) {
         if (WSAGetLastError() == WSAEINTR)
             goto again;
         debug("send error");
-        return -1;
+        return SOCK_ERR;
     }
-#else  /* No defined _WIN32 */
-    nwrite = send(sock->fd, data, n, MSG_NOSIGNAL);
-    if (nwrite == -1) {
+#else  /* No define _WIN32 */
+    ret = send(sock, data, len, MSG_NOSIGNAL);
+    if (ret == SOCK_ERR) {
         if (errno == EINTR)
             goto again;
         debug("send error");
-        return -1;
+        return SOCK_ERR;
     }
 #endif /* _WIN32 */
-    return nwrite;
+    return ret;
 }
 
-int socket_set_blocking(socket_t *sock)
+void xshutdown(socket_t sock)
+{
+#ifdef _WIN32
+    shutdown(sock, SD_BOTH);
+#else  /* No define _WIN32 */
+    shutdown(sock, SHUT_RDWR);
+#endif /* _WIN32 */
+}
+
+void xclose(socket_t sock)
+{
+#ifdef _WIN32
+    closesocket(sock);
+#else  /* No define _WIN32 */
+    close(sock);
+#endif /* _WIN32 */
+}
+
+int set_blocking(socket_t sock)
 {
 #ifdef _WIN32
     u_long opt = 0;
-    if (ioctlsocket(sock->fd, FIONBIO, &opt) == SOCKET_ERROR) {
-        debug("set block error");
-        return -1;
+    if (ioctlsocket(sock, FIONBIO, &opt) == SOCKET_ERROR) {
+        debug("ioctlsocket error");
+        return SOCK_ERR;
     }
 #else  /* No define _WIN32 */
-    int flags = fcntl(sock->fd, F_GETFL);
+    int flags = fcntl(sock, F_GETFL);
     if (flags == -1) {
-        debug("set block GETFL error");
-        return -1;
+        debug("fcntl error");
+        return SOCK_ERR;
     }
-
-    if (fcntl(sock->fd, F_SETFL, flags & ~O_NONBLOCK) == -1) {
-        debug("set block SETFL error");
-        return -1;
+    if (fcntl(sock, F_SETFL, flags & ~O_NONBLOCK) == -1) {
+        debug("fcntl error");
+        return SOCK_ERR;
     }
 #endif /* _WIN32 */
-    return 0;
+    return SOCK_OK;
 }
 
-int socket_set_nonblocking(socket_t *sock)
+int set_nonblocking(socket_t sock)
 {
 #ifdef _WIN32
     u_long opt = 1;
-    if (ioctlsocket(sock->fd, FIONBIO, &opt) == SOCKET_ERROR) {
-        debug("set nonblock error");
-        return -1;
+    if (ioctlsocket(sock, FIONBIO, &opt) == SOCKET_ERROR) {
+        debug("ioctlsocket error");
+        return SOCK_ERR;
     }
 #else  /* No define _WIN32 */
-    int flags = fcntl(sock->fd, F_GETFL);
+    int flags = fcntl(sock, F_GETFL);
     if (flags == -1) {
-        debug("set nonblock GETFL error");
-        return -1;
+        debug("fcntl error");
+        return SOCK_ERR;
     }
-
-    if (fcntl(sock->fd, F_SETFL, flags | O_NONBLOCK) == -1) {
-        debug("set nonblock SETFL error");
-        return -1;
+    if (fcntl(sock, F_SETFL, flags | O_NONBLOCK) == -1) {
+        debug("fcntl error");
+        return SOCK_ERR;
     }
 #endif /* _WIN32 */
-    return 0;
-}
-
-void socket_shutdown(socket_t *sock)
-{
-#ifdef _WIN32
-    shutdown(sock->fd, SD_BOTH);
-#else  /* No defined _WIN32 */
-    shutdown(sock->fd, SHUT_RDWR);
-#endif /* _WIN32 */
-}
-
-void socket_close(socket_t *sock)
-{
-#ifdef _WIN32
-    closesocket(sock->fd);
-#else  /* No defined _WIN32 */
-    close(sock->fd);
-#endif /* _WIN32 */
+    return SOCK_OK;
 }

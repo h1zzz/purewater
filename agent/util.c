@@ -4,6 +4,7 @@
 
 #ifndef _WIN32
 #include <arpa/inet.h>
+#include <unistd.h>
 #endif /* _WIN32 */
 
 #include <string.h>
