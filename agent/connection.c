@@ -14,12 +14,12 @@
 #include "util.h"
 
 struct tcpconn {
-    socket_t sock;           /* Basic socket */
-    proxy_connect *pconnect; /* Use proxy connect callback function */
-    char *proxy_host;        /* Proxy server ip address or domain */
-    uint16_t proxy_port;     /* Proxy server port */
-    char *proxy_user;        /* Proxy username */
-    char *proxy_passwd;      /* Proxy password */
+    socket_t sock;                  /* Basic socket */
+    proxy_connect_t *proxy_connect; /* Use proxy connect callback function */
+    char *proxy_host;               /* Proxy server ip address or domain */
+    uint16_t proxy_port;            /* Proxy server port */
+    char *proxy_user;               /* Proxy username */
+    char *proxy_passwd;             /* Proxy password */
 
     int connected;     /* Successfully established connection */
     int ssl_connected; /* SSL connection established successfully */
@@ -39,19 +39,32 @@ tcpconn_t *tcpconn_new(void)
         debug("calloc error");
         return NULL;
     }
-
     conn->sock = SOCK_INVAL;
 
     return conn;
 }
 
-int tcpconn_set_proxy(tcpconn_t *conn, proxy_connect *pconnect,
+int tcpconn_set_proxy(tcpconn_t *conn, proxy_connect_t *proxy_connect,
                       const char *host, uint16_t port, const char *user,
                       const char *passwd)
 {
+    conn->proxy_connect = proxy_connect;
+
     /* Prevent memory leaks and release memory occupied by old data */
-    if (conn->proxy_host)
+    if (conn->proxy_host) {
         free(conn->proxy_host);
+        conn->proxy_host = NULL;
+    }
+
+    if (conn->proxy_user) {
+        free(conn->proxy_user);
+        conn->proxy_user = NULL;
+    }
+
+    if (conn->proxy_passwd) {
+        free(conn->proxy_passwd);
+        conn->proxy_passwd = NULL;
+    }
 
     conn->proxy_host = xstrdup(host);
     if (!conn->proxy_host) {
@@ -59,26 +72,20 @@ int tcpconn_set_proxy(tcpconn_t *conn, proxy_connect *pconnect,
         goto err_dup_host;
     }
 
-    if (conn->proxy_user)
-        free(conn->proxy_user);
-
-    conn->proxy_user = xstrdup(user);
-    if (!conn->proxy_user) {
-        debug("xstrdup error");
-        goto err_dup_user;
-    }
-
-    if (conn->proxy_passwd)
-        free(conn->proxy_passwd);
-
-    conn->proxy_passwd = xstrdup(passwd);
-    if (!conn->proxy_passwd) {
-        debug("xstrdup error");
-        goto err_dup_passwd;
-    }
-
-    conn->pconnect = pconnect;
     conn->proxy_port = port;
+
+    if (user && passwd) {
+        conn->proxy_user = xstrdup(user);
+        if (!conn->proxy_user) {
+            debug("xstrdup error");
+            goto err_dup_user;
+        }
+        conn->proxy_passwd = xstrdup(passwd);
+        if (!conn->proxy_passwd) {
+            debug("xstrdup error");
+            goto err_dup_passwd;
+        }
+    }
 
     return 0;
 
@@ -98,10 +105,10 @@ int tcpconn_connect(tcpconn_t *conn, const char *host, uint16_t port)
     int ret;
 
     /* If there is a proxy, use the proxy to establish a connection */
-    if (conn->pconnect) {
+    if (conn->proxy_connect) {
         conn->sock =
-            conn->pconnect(host, port, conn->proxy_host, conn->proxy_port,
-                           conn->proxy_user, conn->proxy_passwd);
+            conn->proxy_connect(host, port, conn->proxy_host, conn->proxy_port,
+                                conn->proxy_user, conn->proxy_passwd);
         if (conn->sock == SOCK_INVAL) {
             debug("conn->pconnect error");
             return -1;
@@ -122,7 +129,7 @@ int tcpconn_connect(tcpconn_t *conn, const char *host, uint16_t port)
             continue;
         }
         ret = xconnect(conn->sock, dns_ptr->data, port);
-        if (ret == SOCK_ERR) {
+        if (ret == -1) {
             debug("xconnect error");
             xclose(conn->sock);
             conn->sock = SOCK_INVAL;
@@ -209,17 +216,16 @@ int tcpconn_ssl_connect(tcpconn_t *conn, const char *host, uint16_t port)
                         (mbedtls_ssl_send_t *)tcpconn_ssl_send,
                         (mbedtls_ssl_recv_t *)tcpconn_ssl_recv, NULL);
 
-    do {
-        ret = mbedtls_ssl_handshake(&conn->ssl);
-        if (ret != 0) {
-            if (ret != MBEDTLS_ERR_SSL_WANT_READ &&
-                ret != MBEDTLS_ERR_SSL_WANT_WRITE) {
-                debugf("failed  ! mbedtls_ssl_handshake returned -0x%x", -ret);
-                goto err;
-            }
-            continue;
+again:
+    ret = mbedtls_ssl_handshake(&conn->ssl);
+    if (ret != 0) {
+        if (ret != MBEDTLS_ERR_SSL_WANT_READ &&
+            ret != MBEDTLS_ERR_SSL_WANT_WRITE) {
+            debugf("failed  ! mbedtls_ssl_handshake returned -0x%x", -ret);
+            goto err;
         }
-    } while (0);
+        goto again;
+    }
 
     conn->ssl_connected = 1;
     return 0;
@@ -234,18 +240,17 @@ int tcpconn_recv(tcpconn_t *conn, void *buf, size_t size)
     int ret;
 
     if (conn->ssl_connected) {
-        do {
-            ret = mbedtls_ssl_read(&conn->ssl, (unsigned char *)buf, size);
-            if (ret < 0) {
-                if (ret == MBEDTLS_ERR_SSL_WANT_READ ||
-                    ret == MBEDTLS_ERR_SSL_WANT_WRITE)
-                    continue;
-                if (ret == MBEDTLS_ERR_SSL_PEER_CLOSE_NOTIFY)
-                    return 0;
-                debugf("failed\n  ! mbedtls_ssl_read returned %d\n\n", ret);
-                return -1;
-            }
-        } while (0);
+    again:
+        ret = mbedtls_ssl_read(&conn->ssl, (unsigned char *)buf, size);
+        if (ret < 0) {
+            if (ret == MBEDTLS_ERR_SSL_WANT_READ ||
+                ret == MBEDTLS_ERR_SSL_WANT_WRITE)
+                goto again;
+            if (ret == MBEDTLS_ERR_SSL_PEER_CLOSE_NOTIFY)
+                return 0;
+            debugf("failed\n  ! mbedtls_ssl_read returned %d\n\n", ret);
+            return -1;
+        }
         return ret;
     }
 
@@ -257,19 +262,18 @@ int tcpconn_send(tcpconn_t *conn, const void *data, size_t len)
     int ret;
 
     if (conn->ssl_connected) {
-        do {
-            ret =
-                mbedtls_ssl_write(&conn->ssl, (const unsigned char *)data, len);
-            if (ret <= 0) {
-                if (ret == MBEDTLS_ERR_SSL_WANT_READ ||
-                    ret == MBEDTLS_ERR_SSL_WANT_WRITE)
-                    continue;
-                debugf(" failed\n  ! mbedtls_ssl_write returned %d\n\n", ret);
-                return -1;
-            }
-        } while (0);
+    again:
+        ret = mbedtls_ssl_write(&conn->ssl, (const unsigned char *)data, len);
+        if (ret <= 0) {
+            if (ret == MBEDTLS_ERR_SSL_WANT_READ ||
+                ret == MBEDTLS_ERR_SSL_WANT_WRITE)
+                goto again;
+            debugf(" failed\n  ! mbedtls_ssl_write returned %d\n\n", ret);
+            return -1;
+        }
         return ret;
     }
+
     return xsend(conn->sock, data, len);
 }
 

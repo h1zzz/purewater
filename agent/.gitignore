@@ -67,3 +67,4 @@ _deps
 # Workspace
 .cache
 /build/
+/win_build/

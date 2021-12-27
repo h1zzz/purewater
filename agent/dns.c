@@ -169,7 +169,7 @@ static int send_question(socket_t sock, const char *name, int type)
     question->qtype = htons(type);
     question->qclass = htons(CLASS_IN);
 
-    if (xsend(sock, buf, (int)n) == SOCK_ERR) {
+    if (xsend(sock, buf, (int)n) == -1) {
         debug("xsend error");
         return -1;
     }
@@ -343,7 +343,7 @@ struct dns_node *dns_lookup(dns_t *dns, const char *name, int type)
 
     dns_node = NULL;
 
-    if (check_is_ipv4(name)) {
+    if (is_ipv4(name)) {
         new_node = calloc(1, sizeof(struct dns_node));
         if (!new_node) {
             debug("calloc error");
@@ -351,13 +351,9 @@ struct dns_node *dns_lookup(dns_t *dns, const char *name, int type)
         }
 
         new_node->type = type;
-        new_node->data_len = sizeof(struct in_addr);
+        new_node->data_len = strlen(name);
 
-        ret = inet_pton(AF_INET, name, dns_node->data);
-        if (ret <= 0) {
-            free(new_node);
-            return NULL;
-        }
+        strcpy(new_node->data, name);
 
         new_node->next = dns_node;
         dns_node = new_node;
@@ -380,7 +376,7 @@ struct dns_node *dns_lookup(dns_t *dns, const char *name, int type)
         }
 
         ret = xconnect(sock, server->host, server->port);
-        if (ret == SOCK_ERR) {
+        if (ret == -1) {
             debug("xconnect error");
             goto cleanup;
         }
@@ -392,7 +388,7 @@ struct dns_node *dns_lookup(dns_t *dns, const char *name, int type)
         }
 
         ret = xrecv(sock, buf, sizeof(buf));
-        if (ret == SOCK_ERR) {
+        if (ret == -1) {
             debug("xrecv error");
             goto cleanup;
         }
@@ -460,7 +456,7 @@ static int dns_add_dns_server_for_local(dns_t *dns)
     ipAddr = &fInfo->DnsServerList;
 
     while (ipAddr) {
-        if (!check_is_ipv4(ipAddr->IpAddress.String)) {
+        if (!is_ipv4(ipAddr->IpAddress.String)) {
             debug("Currently only supports the use of IPv4 DNS servers");
             ipAddr = ipAddr->Next;
             continue;
@@ -510,7 +506,7 @@ static int dns_add_dns_server_for_local(dns_t *dns)
 
         ptr = &buf[11];
 
-        if (!check_is_ipv4(ptr)) {
+        if (!is_ipv4(ptr)) {
             debug("currently only supports the use of IPv4 DNS servers");
             continue;
         }

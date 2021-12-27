@@ -1,87 +1,87 @@
 /* MIT License Copyright (c) 2021, h1zzz */
 
+#include "socks.h"
+
+#ifdef _WIN32
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#else /* No define _WIN32 */
+#include <arpa/inet.h>
+#endif /* _WIN32 */
+
+#include <string.h>
+
+#include "debug.h"
+
+#ifdef _MSC_VER
+#pragma comment(lib, "ws2_32.lib")
+#endif /* _MSC_VER */
+
+#define SOCKS5_VERSION 0x05
+
 /*
  * https://datatracker.ietf.org/doc/html/rfc1928
  * https://datatracker.ietf.org/doc/html/rfc1929
  */
 
-#include "socks.h"
-
-#include <string.h>
-
-#include "debug.h"
-#include "llist.h"
-#include "util.h"
-
-#define SOCKS5_VERSION 5
-
-#if 0
-
-int socks5_client_send_method(tcpconn_t *conn, int use_password)
+int socks5_client_negotiate_auth_method(socket_t sock, const uint8_t *methods,
+                                        uint8_t nmethods)
 {
-    unsigned char buf[32] = {0};
-    uint8_t nmethods = 1; /* NO AUTHENTICATION REQUIRED */
-    int ret, n = 0;
+    unsigned char buf[512];
+    int ret, len = 0;
 
     /*
-     * The client connects to the server, and sends a version
-     * identifier/method selection message:
      * +----+----------+----------+
      * |VER | NMETHODS | METHODS  |
      * +----+----------+----------+
      * | 1  |    1     | 1 to 255 |
      * +----+----------+----------+
      */
+    buf[len++] = SOCKS5_VERSION;
+    buf[len++] = nmethods;
 
-    if (use_password)
-        nmethods++;
+    memcpy(buf + len, methods, nmethods);
+    len += nmethods;
 
-    buf[n++] = SOCKS5_VERSION;                    /* VER */
-    buf[n++] = nmethods;                          /* NMETHODS */
-    buf[n++] = SOCKS5_NO_AUTHENTICATION_REQUIRED; /* METHOD */
-
-    if (use_password)
-        buf[n++] = SOCKS5_USERNAME_PASSWORD; /* METHOD */
-
-    ret = net_write(net, buf, n);
+    ret = xsend(sock, buf, len);
     if (ret == -1) {
-        debug("net_write error");
+        debug("xsend error");
+        return -1;
+    }
+
+    ret = xrecv(sock, buf, sizeof(buf));
+    if (ret == -1) {
+        debug("xrecv error");
         return -1;
     }
 
     /*
-     * The server selects from one of the methods given in METHODS, and
-     * sends a METHOD selection message:
      * +----+--------+
      * |VER | METHOD |
      * +----+--------+
      * | 1  |   1    |
      * +----+--------+
      */
-    ret = net_read(net, buf, sizeof(buf));
-    if (ret == -1) {
-        debug("net_read error");
-        return -1;
-    }
-
-    /* Verify message length */
     if (ret != 2) {
-        debugf("packet length error: %d", ret);
+        debug("invalid negotiation result");
         return -1;
     }
 
-    /* Verify the socks version */
+    /* version */
     if (buf[0] != SOCKS5_VERSION) {
-        debugf("incorrect protocol version: %d", buf[0]);
+        debug("wrong socks proxy server version");
         return -1;
     }
 
-    return buf[1];
+    return buf[1]; /* method */
 }
 
-int socks5_client_send_password_auth(tcpconn_t *conn, const char *uname,
-                                     const char *passwd)
+int socks5_client_username_password_auth(socket_t sock, const char *user,
+                                         const char *passwd)
 {
+    unsigned char buf[1024];
+    int ret, len = 0;
+
     /*
      * +----+------+----------+------+----------+
      * |VER | ULEN |  UNAME   | PLEN |  PASSWD  |
@@ -89,87 +89,127 @@ int socks5_client_send_password_auth(tcpconn_t *conn, const char *uname,
      * | 1  |  1   | 1 to 255 |  1   | 1 to 255 |
      * +----+------+----------+------+----------+
      */
-    unsigned char buf[1024] = {0};
-    int n = 0, ret;
-    size_t len;
 
-    buf[n++] = SOCKS5_VERSION; /* VER */
+    buf[len++] = SOCKS5_VERSION;
 
-    len = strlen(uname);
-    /* The size of the username and password ranges from 0 to 255 */
-    if (len == 0 || len > 255) {
-        debugf("incorrect username format: %s", uname);
+    ret = strlen(user);
+    if (ret >= 256) {
+        debugf("username exceeds length limit: %s", user);
         return -1;
     }
 
-    buf[n++] = (unsigned char)len; /* ULEN */
-    while (len--)
-        buf[n++] = *uname++; /* UNAME */
+    buf[len++] = (uint8_t)ret; /* ulen */
 
-    len = strlen(passwd);
-    if (len == 0 || len > 255) {
-        debugf("incorrect password format: %s", passwd);
+    memcpy(buf + len, user, ret); /* uname */
+    len += ret;
+
+    ret = strlen(passwd);
+    if (ret >= 256) {
+        debugf("password exceeds length limit: %s", passwd);
         return -1;
     }
 
-    buf[n++] = (unsigned char)len; /* PLEN */
-    while (len--)
-        buf[n++] = *passwd++; /* PASSWD */
+    buf[len++] = (uint8_t)ret; /* plen */
 
-    ret = net_write(net, buf, n);
+    memcpy(buf + len, user, ret); /* passwd */
+    len += ret;
+
+    ret = xsend(sock, buf, len);
     if (ret == -1) {
-        debug("net_write error");
+        debug("xsend error");
+        return -1;
+    }
+
+    ret = xrecv(sock, buf, sizeof(buf));
+    if (ret == -1) {
+        debug("xrecv error");
         return -1;
     }
 
     /*
-     * The server verifies the supplied UNAME and PASSWD, and sends the
-     * following response:
      * +----+--------+
      * |VER | STATUS |
      * +----+--------+
      * | 1  |   1    |
      * +----+--------+
      */
-    ret = net_readn(net, buf, sizeof(buf));
-    if (ret == -1) {
-        debug("net_readn error");
+    if (ret != 2) {
+        debug("invalid authentication result message");
         return -1;
     }
 
-    /* Verify the socks version */
+    /* version */
     if (buf[0] != SOCKS5_VERSION) {
-        debugf("incorrect protocol version: %d", buf[0]);
+        debug("wrong socks proxy server version");
         return -1;
     }
 
-    /*
-     * A STATUS field of X'00' indicates success. If the server returns a
-     * `failure' (STATUS value other than X'00') status, it MUST close the
-     * connection.
-     */
-    return buf[1] == 0;
+    /* A STATUS field of X'00' indicates success. If the server returns a
+      `failure' (STATUS value other than X'00') status, it MUST close the
+       connection. */
+    if (buf[1] != 0x00) {
+        debug("authentication failed");
+        return -1;
+    }
+
+    return 0;
 }
 
-static int socks5_client_read_response(tcpconn_t *conn)
+int socks5_client_request(socket_t sock, uint8_t cmd, uint8_t atyp,
+                          const char *addr, uint16_t port)
 {
-    unsigned char buf[256] = {0};
-    int ret;
+    unsigned char buf[512];
+    int ret, len = 0;
 
     /*
-     * The SOCKS request information is sent by the client as soon as it has
-     * established a connection to the SOCKS server, and completed the
-     * authentication negotiations.  The server evaluates the request, and
-     * returns a reply formed as follows:
      * +----+-----+-------+------+----------+----------+
-     * |VER | REP |  RSV  | ATYP | BND.ADDR | BND.PORT |
+     * |VER | CMD |  RSV  | ATYP | DST.ADDR | DST.PORT |
      * +----+-----+-------+------+----------+----------+
      * | 1  |  1  | X'00' |  1   | Variable |    2     |
      * +----+-----+-------+------+----------+----------+
      */
-    ret = net_read(net, buf, sizeof(buf));
+
+    buf[len++] = SOCKS5_VERSION;
+    buf[len++] = cmd;
+    buf[len++] = 0; /* RSV */
+    buf[len++] = atyp;
+
+    switch (atyp) {
+    case SOCKS5_IPV4_ADDRESS:
+        ret = inet_pton(AF_INET, addr, buf + len);
+        if (ret <= 0) {
+            debugf("inet_pton error: %s", addr);
+            return -1;
+        }
+        len += 4; /* IPv4 address 32bit */
+        break;
+    case SOCKS5_DOMAINNAME:
+        ret = strlen(addr);
+        if (ret == 0 || ret >= 256) {
+            debugf("The length of the domain name exceeds the limit: %s", addr);
+            return -1;
+        }
+        buf[len++] = (uint8_t)ret; /* domain length */
+        memcpy(buf + len, addr, ret);
+        len += ret;
+        break;
+    default:
+        debug("unsupported address type");
+        return -1;
+    }
+
+    *((uint16_t *)(buf + len)) = htons(port);
+    len += 2;
+
+    ret = xsend(sock, buf, len);
     if (ret == -1) {
-        debug("net_read error");
+        debug("xsend error");
+        return -1;
+    }
+
+    ret = xrecv(sock, buf, sizeof(buf));
+    if (ret == -1) {
+        debug("xrecv error");
         return -1;
     }
 
@@ -178,12 +218,13 @@ static int socks5_client_read_response(tcpconn_t *conn)
         return -1;
     }
 
-    /* Verify the socks version */
+    /* version */
     if (buf[0] != SOCKS5_VERSION) {
-        debugf("incorrect protocol version: %d", buf[0]);
+        debug("wrong socks proxy server version");
         return -1;
     }
 
+    /* rep */
     switch (buf[1]) {
     case SOCKS5_SUCCEEDED:
         return 0;
@@ -194,76 +235,3 @@ static int socks5_client_read_response(tcpconn_t *conn)
 
     return -1;
 }
-
-int socks5_client_request(tcpconn_t *conn, int cmd, int atyp,
-                          const char *dst_addr, uint16_t dst_port)
-{
-    /*
-     * The SOCKS request is formed as follows:
-     * +----+-----+-------+------+----------+----------+
-     * |VER | CMD |  RSV  | ATYP | DST.ADDR | DST.PORT |
-     * +----+-----+-------+------+----------+----------+
-     * | 1  |  1  | X'00' |  1   | Variable |    2     |
-     * +----+-----+-------+------+----------+----------+
-     */
-    unsigned char buf[1024] = {0};
-    int n = 0, ret;
-    size_t len;
-
-    buf[n++] = SOCKS5_VERSION; /* VER */
-    buf[n++] = cmd;            /* CMD */
-    buf[n++] = 0;              /* RSV */
-    buf[n++] = atyp;           /* ATYP */
-
-    switch (atyp) {
-    case SOCKS5_IPV4_ADDRESS: {
-        ret = inet_pton(AF_INET, dst_addr, buf + n);
-        if (ret <= 0) {
-            debugf("inet_pton error: %s", dst_addr);
-            return -1;
-        }
-        /* the address is a version-4 IP address, with a length of 4 octets */
-        n += 4;
-        break;
-    }
-    case SOCKS5_DOMAINNAME: {
-        /*
-         * the address field contains a fully-qualified domain name.  The first
-         * octet of the address field contains the number of octets of name that
-         * follow, there is no terminating NUL octet.
-         */
-        len = strlen(dst_addr);
-        if (len == 0 || len > 255) {
-            debugf("incorrect domain format: %s", dst_addr);
-            return -1;
-        }
-        buf[n++] = (unsigned char)len; /* DST.ADDR Length */
-        while (len--)
-            buf[n++] = *dst_addr++; /* DST.ADDR */
-        break;
-    }
-    default:
-        debug("unsupported address type");
-        return -1;
-    }
-
-    /* desired destination port in network octet order, 2 bytes */
-    *(uint16_t *)(&buf[n]) = htons(dst_port);
-    n += 2;
-
-    ret = net_write(net, buf, n);
-    if (ret == -1) {
-        debug("net_write error");
-        return -1;
-    }
-
-    ret = socks5_client_read_response(net);
-    if (ret == -1) {
-        debug("socks5_client_read_response error");
-        return -1;
-    }
-
-    return ret;
-}
-
-#endif

@@ -61,7 +61,7 @@ char *xstrdup(const char *str)
     return ptr;
 }
 
-int check_is_ipv4(const char *ip)
+int is_ipv4(const char *ip)
 {
     const char *s = ip;
     size_t i;

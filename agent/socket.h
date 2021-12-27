@@ -16,12 +16,8 @@ typedef int socket_t;
 #define SOCK_UDP 1
 
 #ifdef _WIN32
-#define SOCK_OK 0
-#define SOCK_ERR (-1)
 #define SOCK_INVAL (socket_t)(~0)
 #else /* No define _WIN32 */
-#define SOCK_OK 0
-#define SOCK_ERR (-1)
 #define SOCK_INVAL (-1)
 #endif /* _WIN32 */
 

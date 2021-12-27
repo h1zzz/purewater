@@ -12,7 +12,7 @@ typedef struct tcpconn tcpconn_t;
    NULL on failure */
 tcpconn_t *tcpconn_new(void);
 /* Set the proxy, return 0 if successful, return -1 if failed */
-int tcpconn_set_proxy(tcpconn_t *conn, proxy_connect *pconnect,
+int tcpconn_set_proxy(tcpconn_t *conn, proxy_connect_t *proxy_connect,
                       const char *host, uint16_t port, const char *user,
                       const char *passwd);
 /* Connect to hos:port, return 0 on success, return -1 on failure */
