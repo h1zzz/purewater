@@ -47,9 +47,10 @@ set(
   proxy_https.h
   proxy_socks.h
   socket.h
-  socks.h
+  socks.c
   # tunnel_dns.h
   # tunnel_http.h
+  url.h
   util.h
 )
 
@@ -67,6 +68,7 @@ set(
   socks.c
   # tunnel_dns.c
   # tunnel_http.c
+  url.c
   util.c
 )
 
