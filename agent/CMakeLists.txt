@@ -42,6 +42,7 @@ set(
   dns.h
   http.h
   llist.h
+  network.h
   platform.h
   proxy.h
   proxy_https.h
@@ -61,6 +62,7 @@ set(
   http.c
   llist.c
   main.c
+  network.c
   platform.c
   proxy_https.c
   proxy_socks.c
