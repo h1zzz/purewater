@@ -44,7 +44,6 @@ set(
   llist.h
   network.h
   platform.h
-  proxy.h
   proxy_https.h
   proxy_socks.h
   socket.h
