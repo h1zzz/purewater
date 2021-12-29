@@ -214,12 +214,53 @@ static int dns_read_name(char *data, char *ptr, char *name, size_t size)
     return count;
 }
 
+static int append_dns_node(struct dns_node **res, int type, const char *data,
+                           size_t len)
+{
+    struct dns_node *dns_node;
+
+    dns_node = calloc(1, sizeof(struct dns_node));
+    if (!dns_node) {
+        debug("calloc error");
+        return -1;
+    }
+
+    /* assert(len <= sizeof(dns_node->data)); */
+
+    switch (type) {
+    case DNS_A:
+        dns_node->data_len = len;
+        debugf("len: %ld", len);
+        if (!inet_ntop(AF_INET, data, dns_node->data, sizeof(dns_node->data))) {
+            debug("inet_ntop error");
+            free(dns_node);
+            dns_node = NULL;
+        }
+        break;
+    case DNS_TXT:
+        dns_node->data_len = data[0];
+        memcpy(dns_node->data, data + 1, dns_node->data_len);
+        break;
+    default:
+        debugf("nosupported type: %d", type);
+        free(dns_node);
+        dns_node = NULL;
+        break;
+    }
+
+    if (dns_node) {
+        dns_node->next = *res;
+        *res = dns_node;
+    }
+
+    return 0;
+}
+
 static int parse_answer(struct dns_node **res, char *data, int n)
 {
     uint16_t i, an_count, type, class, rd_length;
     struct dns_header *header;
     struct dns_rrs *answer;
-    struct dns_node *dns_node;
     int pos, ret;
 
     pos = sizeof(struct dns_header);
@@ -236,6 +277,7 @@ static int parse_answer(struct dns_node **res, char *data, int n)
     pos += ret;
     if (sizeof(struct dns_question) > (size_t)n - pos)
         return -1;
+
     pos += sizeof(struct dns_question);
 
     for (i = 0; i < an_count; i++) {
@@ -262,38 +304,9 @@ static int parse_answer(struct dns_node **res, char *data, int n)
             return 0;
         }
 
-        dns_node = calloc(1, sizeof(struct dns_node));
-        if (!dns_node) {
-            debug("calloc error");
+        if (append_dns_node(res, type, data + pos, rd_length) == -1) {
+            debug("append_dns_node error");
             return -1;
-        }
-
-        /* assert(rd_length <= sizeof(dns_node->data)); */
-
-        switch (type) {
-        case DNS_A:
-            dns_node->data_len = rd_length;
-            if (!inet_ntop(AF_INET, data + pos, dns_node->data,
-                           sizeof(dns_node->data))) {
-                debug("inet_ntop error");
-                free(dns_node);
-                dns_node = NULL;
-            }
-            break;
-        case DNS_TXT:
-            dns_node->data_len = data[pos];
-            memcpy(dns_node->data, data + pos + 1, dns_node->data_len);
-            break;
-        default:
-            debugf("nosupported type: %d", type);
-            free(dns_node);
-            dns_node = NULL;
-            break;
-        }
-
-        if (dns_node) {
-            dns_node->next = *res;
-            *res = dns_node;
         }
 
         pos += rd_length;
