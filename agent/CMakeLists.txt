@@ -41,7 +41,7 @@ set(
   debug.h
   dns.h
   http.h
-  llist.h
+  linklist.h
   network.h
   platform.h
   proxy_https.h
@@ -59,7 +59,7 @@ set(
   connection.c
   dns.c
   http.c
-  llist.c
+  linklist.c
   main.c
   network.c
   platform.c

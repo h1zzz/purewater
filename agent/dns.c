@@ -15,9 +15,9 @@
 #include <ctype.h>
 
 #include "debug.h"
-#include "util.h"
-#include "llist.h"
+#include "linklist.h"
 #include "socket.h"
+#include "util.h"
 
 #ifdef _MSC_VER
 #pragma comment(lib, "iphlpapi.lib")
@@ -56,20 +56,14 @@ struct dns_rrs {
 };
 #pragma pack(pop)
 
-struct ns_node {
-    struct lnode _node;
-    char *host;
-    uint16_t port;
-};
-
 struct dns_server {
-    struct lnode node;
+    struct linknode node;
     char *host;
     uint16_t port;
 };
 
 struct dns {
-    llist_t dns_servers;
+    struct linklist dns_servers;
 };
 
 static struct dns_server *dns_server_new(const char *host, uint16_t port)
@@ -230,7 +224,6 @@ static int append_dns_node(struct dns_node **res, int type, const char *data,
     switch (type) {
     case DNS_A:
         dns_node->data_len = len;
-        debugf("len: %ld", len);
         if (!inet_ntop(AF_INET, data, dns_node->data, sizeof(dns_node->data))) {
             debug("inet_ntop error");
             free(dns_node);
@@ -325,7 +318,7 @@ dns_t *dns_new(void)
         return NULL;
     }
 
-    llist_init(&dns->dns_servers, NULL, (lnode_free_t *)dns_server_free);
+    linklist_init(&dns->dns_servers, NULL, (linknode_free_t *)dns_server_free);
 
     return dns;
 }
@@ -340,8 +333,8 @@ int dns_add_dns_server(dns_t *dns, const char *host, uint16_t port)
         return -1;
     }
 
-    llist_insert_next(&dns->dns_servers, dns->dns_servers.tail,
-                      (struct lnode *)server);
+    linklist_insert_next(&dns->dns_servers, dns->dns_servers.tail,
+                         (struct linknode *)server);
     return 0;
 }
 
@@ -349,7 +342,7 @@ struct dns_node *dns_lookup(dns_t *dns, const char *name, int type)
 {
     struct dns_node *dns_node, *new_node;
     struct dns_server *server;
-    struct lnode *lnode;
+    struct linknode *node;
     char buf[10240];
     socket_t sock;
     int ret;
@@ -379,8 +372,8 @@ struct dns_node *dns_lookup(dns_t *dns, const char *name, int type)
         return NULL;
     }
 
-    for (lnode = dns->dns_servers.head; lnode; lnode = lnode->next) {
-        server = (struct dns_server *)lnode;
+    for (node = dns->dns_servers.head; node; node = node->next) {
+        server = (struct dns_server *)node;
 
         sock = xsocket(SOCK_UDP);
         if (sock == SOCK_INVAL) {
@@ -434,7 +427,7 @@ void dns_node_cleanup(struct dns_node *dns_node)
 
 void dns_free(dns_t *dns)
 {
-    llist_destroy(&dns->dns_servers);
+    linklist_destroy(&dns->dns_servers);
     free(dns);
 }
 

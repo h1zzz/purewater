@@ -1,19 +1,20 @@
 /* MIT License Copyright (c) 2021, h1zzz */
 
-#include "llist.h"
+#include "linklist.h"
 
 #include <stddef.h>
 
-void llist_init(llist_t *list, lnode_find_t *lnode_find,
-                lnode_free_t *lnode_free)
+void linklist_init(struct linklist *list, linknode_find_t *linknode_find,
+                   linknode_free_t *linknode_free)
 {
-    list->lnode_find = lnode_find;
-    list->lnode_free = lnode_free;
+    list->linknode_find = linknode_find;
+    list->linknode_free = linknode_free;
     list->head = NULL;
     list->tail = NULL;
 }
 
-void llist_insert_next(llist_t *list, struct lnode *pos, struct lnode *node)
+void linklist_insert_next(struct linklist *list, struct linknode *pos,
+                          struct linknode *node)
 {
     node->list = list;
     node->prev = pos;
@@ -38,7 +39,7 @@ void llist_insert_next(llist_t *list, struct lnode *pos, struct lnode *node)
     }
 }
 
-void llist_remove(llist_t *list, struct lnode *node)
+void linklist_remove(struct linklist *list, struct linknode *node)
 {
     if (node == list->head) {
         list->head = node->next;
@@ -55,23 +56,23 @@ void llist_remove(llist_t *list, struct lnode *node)
             list->tail = node->prev;
     }
 
-    if (list->lnode_free)
-        list->lnode_free(node);
+    if (list->linknode_free)
+        list->linknode_free(node);
 }
 
-struct lnode *llist_find(llist_t *list, const void *key)
+struct linknode *linklist_find(struct linklist *list, const void *key)
 {
-    struct lnode *ptr = NULL;
+    struct linknode *ptr = NULL;
 
     for (ptr = list->head; ptr; ptr = ptr->next) {
-        if (list->lnode_find && list->lnode_find(ptr, key))
+        if (list->linknode_find && list->linknode_find(ptr, key))
             break;
     }
     return ptr;
 }
 
-void llist_destroy(llist_t *list)
+void linklist_destroy(struct linklist *list)
 {
     while (list->head)
-        llist_remove(list, list->head);
+        linklist_remove(list, list->head);
 }
