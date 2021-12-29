@@ -11,6 +11,7 @@
 
 #include "debug.h"
 #include "dns.h"
+#include "network.h"
 #include "util.h"
 
 struct tcpconn {
@@ -101,9 +102,6 @@ err_dup_host:
 
 int tcpconn_connect(tcpconn_t *conn, const char *host, uint16_t port)
 {
-    struct dns_node *dns_node, *dns_ptr;
-    int ret;
-
     /* If there is a proxy, use the proxy to establish a connection */
     if (conn->proxy_connect) {
         conn->sock =
@@ -116,30 +114,7 @@ int tcpconn_connect(tcpconn_t *conn, const char *host, uint16_t port)
         return 0;
     }
 
-    dns_node = dns_lookup_ret(host, DNS_A);
-    if (!dns_node) {
-        debug("dns_lookup_ret error");
-        return -1;
-    }
-
-    for (dns_ptr = dns_node; dns_ptr; dns_ptr = dns_ptr->next) {
-        conn->sock = xsocket(SOCK_TCP);
-        if (conn->sock == SOCK_INVAL) {
-            debug("xsocket error");
-            continue;
-        }
-        ret = xconnect(conn->sock, dns_ptr->data, port);
-        if (ret == -1) {
-            debug("xconnect error");
-            xclose(conn->sock);
-            conn->sock = SOCK_INVAL;
-            continue;
-        }
-        break;
-    }
-
-    dns_node_cleanup(dns_node);
-
+    conn->sock = tcp_connect(host, port);
     if (conn->sock == SOCK_INVAL)
         return -1;
 

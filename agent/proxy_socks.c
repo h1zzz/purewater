@@ -6,6 +6,7 @@
 
 #include "debug.h"
 #include "dns.h"
+#include "network.h"
 #include "socket.h"
 #include "socks.h"
 #include "util.h"
@@ -14,37 +15,11 @@ socket_t proxy_socks5(const char *host, uint16_t port, const char *proxy_host,
                       uint16_t proxy_port, const char *proxy_user,
                       const char *proxy_passwd)
 {
-    struct dns_node *dns_node, *dns_ptr;
+    uint8_t atyp, nmethods, methods[255];
     socket_t sock;
     int ret;
-    uint8_t atyp, nmethods, methods[255];
 
-    debugf("%s\n", proxy_host);
-
-    dns_node = dns_lookup_ret(proxy_host, DNS_A);
-    if (!dns_node) {
-        debug("dns_lookup_ret error");
-        return SOCK_INVAL;
-    }
-
-    for (dns_ptr = dns_node; dns_ptr; dns_ptr = dns_ptr->next) {
-        sock = xsocket(SOCK_TCP);
-        if (sock == SOCK_INVAL) {
-            debug("xsocket error");
-            return SOCK_INVAL;
-        }
-        ret = xconnect(sock, dns_ptr->data, proxy_port);
-        if (ret == -1) {
-            debug("xconnect error");
-            xclose(sock);
-            sock = SOCK_INVAL;
-            continue;
-        }
-        break;
-    }
-
-    dns_node_cleanup(dns_node);
-
+    sock = tcp_connect(proxy_host, proxy_port);
     if (sock == SOCK_INVAL) {
         debug("connect socks5 proxy server error");
         return SOCK_INVAL;
