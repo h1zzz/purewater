@@ -8,6 +8,18 @@
 #include "debug.h"
 #include "util.h"
 
+static uint16_t get_service_port(const char *scheme)
+{
+    uint16_t port = 0;
+
+    if (strcmp(scheme, "http") == 0)
+        port = 80;
+    else if (strcmp(scheme, "https") == 0)
+        port = 443;
+
+    return port;
+}
+
 struct url_struct *url_parse(const char *url)
 {
     struct url_struct *ret;
@@ -68,6 +80,12 @@ struct url_struct *url_parse(const char *url)
         }
         ret->port = (uint16_t)port;
         ptr = str;
+    } else {
+        ret->port = get_service_port(ret->scheme);
+        if (ret->port == 0) {
+            debug("nosupported scheme");
+            goto err;
+        }
     }
 
     str = strchr(ptr, '/');
