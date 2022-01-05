@@ -2,9 +2,9 @@
 
 #include "dynbuf.h"
 
-#include <string.h>
-#include <stdlib.h>
 #include <stdarg.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "debug.h"
 
@@ -111,7 +111,8 @@ int dynbuf_appendf(dynbuf_t *buf, const char *fmt, ...)
         return -1;
     }
 
-    buf->length += vsnprintf(buf->ptr + buf->length, /* +1 '\0' */
+    /* +1 '\0' */
+    buf->length += vsnprintf(buf->ptr + buf->length,
                              buf->size - buf->length + 1, fmt, ap2);
 
     va_end(ap2);
