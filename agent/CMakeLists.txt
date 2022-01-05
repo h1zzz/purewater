@@ -40,6 +40,7 @@ set(
   connection.h
   debug.h
   dns.h
+  dynbuf.h
   http.h
   http_header.h
   linklist.h
@@ -59,6 +60,7 @@ set(
   SOURCES
   connection.c
   dns.c
+  dynbuf.c
   http.c
   http_header.c
   linklist.c
