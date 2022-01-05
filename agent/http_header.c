@@ -77,6 +77,10 @@ int http_header_add(struct linklist *headers, const char *name,
     struct http_header *header;
     struct linknode *ptr;
 
+    assert(headers);
+    assert(name);
+    assert(value);
+
     ptr = linklist_find(headers, name);
     if (ptr) {
         debug("add repeatedly");
@@ -98,6 +102,9 @@ int http_header_del(struct linklist *headers, const char *name)
 {
     struct linknode *ptr;
 
+    assert(headers);
+    assert(name);
+
     ptr = linklist_find(headers, name);
     if (!ptr) {
         debugf("%s not found", name);
@@ -115,6 +122,10 @@ int http_header_set(struct linklist *headers, const char *name,
     struct http_header *header;
     struct linknode *ptr;
     char *str;
+
+    assert(headers);
+    assert(name);
+    assert(value);
 
     ptr = linklist_find(headers, name);
     if (!ptr)
@@ -138,6 +149,9 @@ const char *http_header_get(struct linklist *headers, const char *name)
     struct http_header *header;
     struct linknode *ptr;
 
+    assert(headers);
+    assert(name);
+
     ptr = linklist_find(headers, name);
     if (ptr) {
         debugf("%s not found", name);
@@ -151,5 +165,6 @@ const char *http_header_get(struct linklist *headers, const char *name)
 
 void http_header_free(struct linklist *headers)
 {
+    assert(headers);
     linklist_destroy(headers);
 }

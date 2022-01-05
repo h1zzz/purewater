@@ -8,8 +8,11 @@
 #include <unistd.h>
 #endif /* _WIN32 */
 
+#include "debug.h"
+
 void xsleep(int seconds)
 {
+    assert(seconds > 0);
 #ifdef _WIN32
     Sleep(seconds * 1000);
 #else  /* No defined _WIN32 */

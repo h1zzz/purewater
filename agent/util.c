@@ -25,6 +25,8 @@ const char *xbasename(const char *str)
 {
     const char *s = NULL;
 
+    assert(str);
+
     while (*str) {
         if (*str++ == PATH_SEPARATOR)
             s = str;
@@ -48,6 +50,8 @@ char *xstrdup(const char *str)
     char *ptr, *s;
     size_t n = 0;
 
+    assert(str);
+
     while ('\0' != str[n++]) {}
 
     ptr = calloc(1, n);
@@ -66,6 +70,8 @@ int is_ipv4(const char *ip)
     const char *s = ip;
     size_t i;
     int n;
+
+    assert(ip);
 
     for (i = 0; i < sizeof(struct in_addr); i++) {
         if (*s == '\0')

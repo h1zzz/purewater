@@ -219,7 +219,7 @@ static int append_dns_node(struct dns_node **res, int type, const char *data,
         return -1;
     }
 
-    /* assert(len <= sizeof(dns_node->data)); */
+    assert(len <= sizeof(dns_node->data));
 
     switch (type) {
     case DNS_A:
@@ -327,6 +327,10 @@ int dns_add_dns_server(dns_t *dns, const char *host, uint16_t port)
 {
     struct dns_server *server;
 
+    assert(dns);
+    assert(host);
+    assert(port != 0);
+
     server = dns_server_new(host, port);
     if (!server) {
         debug("dns_server_new error");
@@ -418,6 +422,8 @@ void dns_node_cleanup(struct dns_node *dns_node)
 {
     struct dns_node *next, *curr = dns_node;
 
+    assert(dns_node);
+
     while (curr) {
         next = curr->next;
         free(curr);
@@ -427,6 +433,7 @@ void dns_node_cleanup(struct dns_node *dns_node)
 
 void dns_free(dns_t *dns)
 {
+    assert(dns);
     linklist_destroy(&dns->dns_servers);
     free(dns);
 }

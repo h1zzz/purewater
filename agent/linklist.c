@@ -4,9 +4,13 @@
 
 #include <stddef.h>
 
+#include "debug.h"
+
 void linklist_init(struct linklist *list, linknode_find_t *linknode_find,
                    linknode_free_t *linknode_free)
 {
+    assert(list);
+
     list->linknode_find = linknode_find;
     list->linknode_free = linknode_free;
     list->head = NULL;
@@ -16,6 +20,11 @@ void linklist_init(struct linklist *list, linknode_find_t *linknode_find,
 void linklist_insert_next(struct linklist *list, struct linknode *pos,
                           struct linknode *node)
 {
+    assert(list);
+    assert(pos);
+    assert(pos->list == list);
+    assert(node);
+
     node->list = list;
     node->prev = pos;
 
@@ -41,6 +50,9 @@ void linklist_insert_next(struct linklist *list, struct linknode *pos,
 
 void linklist_remove(struct linklist *list, struct linknode *node)
 {
+    assert(list);
+    assert(node);
+
     if (node == list->head) {
         list->head = node->next;
         if (list->head)
@@ -64,6 +76,9 @@ struct linknode *linklist_find(struct linklist *list, const void *key)
 {
     struct linknode *ptr = NULL;
 
+    assert(list);
+    assert(key);
+
     for (ptr = list->head; ptr; ptr = ptr->next) {
         if (list->linknode_find && list->linknode_find(ptr, key))
             break;
@@ -73,6 +88,8 @@ struct linknode *linklist_find(struct linklist *list, const void *key)
 
 void linklist_destroy(struct linklist *list)
 {
+    assert(list);
+
     while (list->head)
         linklist_remove(list, list->head);
 }

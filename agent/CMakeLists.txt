@@ -41,6 +41,7 @@ set(
   debug.h
   dns.h
   http.h
+  http_header.h
   linklist.h
   network.h
   platform.h
@@ -59,6 +60,7 @@ set(
   connection.c
   dns.c
   http.c
+  http_header.c
   linklist.c
   main.c
   network.c

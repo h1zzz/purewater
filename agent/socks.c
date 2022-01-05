@@ -30,6 +30,10 @@ int socks5_client_negotiate_auth_method(socket_t sock, const uint8_t *methods,
     unsigned char buf[512];
     int ret, len = 0;
 
+    assert(sock != SOCK_INVAL);
+    assert(methods);
+    assert(nmethods != 0);
+
     /*
      * +----+----------+----------+
      * |VER | NMETHODS | METHODS  |
@@ -81,6 +85,10 @@ int socks5_client_username_password_auth(socket_t sock, const char *user,
 {
     unsigned char buf[1024];
     int ret, len = 0;
+
+    assert(sock != SOCK_INVAL);
+    assert(user);
+    assert(passwd);
 
     /*
      * +----+------+----------+------+----------+
@@ -160,6 +168,11 @@ int socks5_client_request(socket_t sock, uint8_t cmd, uint8_t atyp,
 {
     unsigned char buf[512];
     int ret, len = 0;
+
+    assert(sock != SOCK_INVAL);
+    assert(addr);
+    assert(atyp == SOCKS5_IPV4_ADDRESS || atyp == SOCKS5_DOMAINNAME);
+    assert(port != 0);
 
     /*
      * +----+-----+-------+------+----------+----------+

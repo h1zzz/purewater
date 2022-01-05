@@ -26,6 +26,8 @@ struct url_struct *url_parse(const char *url)
     char *ptr, *str;
     long port;
 
+    assert(url);
+
     ret = calloc(1, sizeof(struct url_struct));
     if (!ret) {
         debug("calloc error");
@@ -117,6 +119,7 @@ err:
 
 void url_cleanup(struct url_struct *url)
 {
+    assert(url);
     free(url->buf);
     free(url);
 }

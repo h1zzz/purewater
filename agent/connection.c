@@ -12,6 +12,7 @@
 #include "debug.h"
 #include "dns.h"
 #include "network.h"
+#include "platform.h"
 #include "util.h"
 
 struct tcpconn {
@@ -49,74 +50,77 @@ int tcpconn_set_proxy(tcpconn_t *conn, proxy_connect_t *proxy_connect,
                       const char *host, uint16_t port, const char *user,
                       const char *passwd)
 {
-    conn->proxy_connect = proxy_connect;
+    char *host_ptr, *user_ptr = NULL, *passwd_ptr = NULL;
 
-    /* Prevent memory leaks and release memory occupied by old data */
-    if (conn->proxy_host) {
-        free(conn->proxy_host);
-        conn->proxy_host = NULL;
-    }
+    assert(conn);
+    assert(proxy_connect);
+    assert(host);
+    assert(port != 0);
 
-    if (conn->proxy_user) {
-        free(conn->proxy_user);
-        conn->proxy_user = NULL;
-    }
-
-    if (conn->proxy_passwd) {
-        free(conn->proxy_passwd);
-        conn->proxy_passwd = NULL;
-    }
-
-    conn->proxy_host = xstrdup(host);
-    if (!conn->proxy_host) {
-        debug("xstrdup error");
+    host_ptr = xstrdup(host);
+    if (!host_ptr) {
+        debugf("xstrdup %s error", host);
         goto err_dup_host;
     }
 
-    conn->proxy_port = port;
-
     if (user && passwd) {
-        conn->proxy_user = xstrdup(user);
-        if (!conn->proxy_user) {
-            debug("xstrdup error");
+        user_ptr = xstrdup(user);
+        if (!user_ptr) {
+            debugf("xstrdup %s error", user);
             goto err_dup_user;
         }
-        conn->proxy_passwd = xstrdup(passwd);
-        if (!conn->proxy_passwd) {
-            debug("xstrdup error");
+
+        passwd_ptr = xstrdup(passwd_ptr);
+        if (!passwd_ptr) {
+            debugf("xstrdup %s error", passwd);
             goto err_dup_passwd;
         }
     }
 
+    /* Prevent memory leaks and release memory occupied by old data */
+    xfree(conn->proxy_host);
+    xfree(conn->proxy_user);
+    xfree(conn->proxy_passwd);
+
+    conn->proxy_connect = proxy_connect;
+    conn->proxy_port = port;
+    conn->proxy_host = host_ptr;
+    conn->proxy_user = user_ptr;
+    conn->proxy_passwd = passwd_ptr;
+
     return 0;
 
 err_dup_passwd:
-    free(conn->proxy_user);
-    conn->proxy_user = NULL;
+    free(user_ptr);
 err_dup_user:
-    free(conn->proxy_host);
-    conn->proxy_host = NULL;
+    free(host_ptr);
 err_dup_host:
     return -1;
 }
 
 int tcpconn_connect(tcpconn_t *conn, const char *host, uint16_t port)
 {
+    assert(conn);
+    assert(host);
+    assert(port != 0);
+
     /* If there is a proxy, use the proxy to establish a connection */
     if (conn->proxy_connect) {
         conn->sock =
             conn->proxy_connect(host, port, conn->proxy_host, conn->proxy_port,
                                 conn->proxy_user, conn->proxy_passwd);
         if (conn->sock == SOCK_INVAL) {
-            debug("conn->pconnect error");
+            debug("proxy_connect fail");
             return -1;
         }
         return 0;
     }
 
     conn->sock = tcp_connect(host, port);
-    if (conn->sock == SOCK_INVAL)
+    if (conn->sock == SOCK_INVAL) {
+        debugf("tcp_connect %s:%hd fail", host, port);
         return -1;
+    }
 
     conn->connected = 1;
 
@@ -155,8 +159,12 @@ int tcpconn_ssl_connect(tcpconn_t *conn, const char *host, uint16_t port)
     static const char *pers = "ssl_client";
     int ret;
 
+    assert(conn);
+    assert(host);
+    assert(port != 0);
+
     if (tcpconn_connect(conn, host, port) == -1) {
-        debug("tcpconn_connect error");
+        debugf("tcpconn_connect %s:%hd fail", host, port);
         return -1;
     }
 
@@ -214,6 +222,10 @@ int tcpconn_recv(tcpconn_t *conn, void *buf, size_t size)
 {
     int ret;
 
+    assert(conn);
+    assert(buf);
+    assert(size != 0);
+
     if (conn->ssl_connected) {
     again:
         ret = mbedtls_ssl_read(&conn->ssl, (unsigned char *)buf, size);
@@ -236,6 +248,10 @@ int tcpconn_send(tcpconn_t *conn, const void *data, size_t len)
 {
     int ret;
 
+    assert(conn);
+    assert(data);
+    assert(len != 0);
+
     if (conn->ssl_connected) {
     again:
         ret = mbedtls_ssl_write(&conn->ssl, (const unsigned char *)data, len);
@@ -254,6 +270,8 @@ int tcpconn_send(tcpconn_t *conn, const void *data, size_t len)
 
 void tcpconn_close(tcpconn_t *conn)
 {
+    assert(conn);
+
     if (conn->connected) {
         if (conn->ssl_connected) {
             mbedtls_ssl_close_notify(&conn->ssl);
@@ -265,16 +283,10 @@ void tcpconn_close(tcpconn_t *conn)
 
 void tcpconn_free(tcpconn_t *conn)
 {
+    assert(conn);
     tcpconn_close(conn);
-
-    if (conn->proxy_host)
-        free(conn->proxy_host);
-
-    if (conn->proxy_user)
-        free(conn->proxy_user);
-
-    if (conn->proxy_passwd)
-        free(conn->proxy_passwd);
-
+    xfree(conn->proxy_host);
+    xfree(conn->proxy_user);
+    xfree(conn->proxy_passwd);
     free(conn);
 }

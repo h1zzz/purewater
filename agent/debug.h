@@ -5,6 +5,7 @@
 
 #ifdef NDEBUG
 #else /* No define NDEBUG */
+#include <assert.h>
 #include <stdio.h>
 
 #include "config.h"
@@ -12,6 +13,7 @@
 #endif /* NDEBUG */
 
 #ifdef NDEBUG
+#define assert(expr)
 #define debug(str)
 #define debugf(fmt, ...)
 #else /* No define NDEBUG */

@@ -19,6 +19,11 @@ socket_t proxy_socks5(const char *host, uint16_t port, const char *proxy_host,
     socket_t sock;
     int ret;
 
+    assert(host);
+    assert(port != 0);
+    assert(proxy_host);
+    assert(proxy_port != 0);
+
     sock = tcp_connect(proxy_host, proxy_port);
     if (sock == SOCK_INVAL) {
         debug("connect socks5 proxy server error");

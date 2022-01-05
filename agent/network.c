@@ -45,10 +45,14 @@ static socket_t wrap_connect(const char *domain, uint16_t port, int type)
 
 socket_t tcp_connect(const char *domain, uint16_t port)
 {
+    assert(domain);
+    assert(port != 0);
     return wrap_connect(domain, port, SOCK_TCP);
 }
 
 socket_t udp_connect(const char *domain, uint16_t port)
 {
+    assert(domain);
+    assert(port != 0);
     return wrap_connect(domain, port, SOCK_UDP);
 }
