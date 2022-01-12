@@ -1,0 +1,20 @@
+name: Build CC Docker
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build Docker
+      run: |
+        cd cc
+        docker build -t cc:$(date +%s) .
