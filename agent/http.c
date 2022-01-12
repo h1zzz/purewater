@@ -4,19 +4,20 @@
 
 #include <stdlib.h>
 
+#include "config.h"
 #include "debug.h"
+
+#define USER_AGENT "purewater-agent/" PROJECT_VERSION
 
 struct http_client {
     struct url_struct *proxy;
 };
 
-/*
- * CONNECT h1zzz.net:443 HTTP/1.1
- * Host: h1zzz.net:443
- * Proxy-Authorization: Basic YWRtaW46MTIzNDU2
- * User-Agent: client
- * Proxy-Connection: Keep-Alive
- */
+/* static const char *s_http_methods[] = {
+    [HTTP_GET] = "GET",
+    [HTTP_POST] = "POST",
+    [HTTP_CONNECT] = "CONNECT",
+}; */
 
 http_client_t *http_client_new(void)
 {
@@ -52,11 +53,39 @@ int http_client_set_proxy(http_client_t *client, const char *proxy)
     return 0;
 }
 
-struct http_response *http_client_do(http_client_t *client, const char *method,
-                                     const char *url,
+/*
+ * CONNECT h1zzz.net:443 HTTP/1.1
+ * Host: h1zzz.net:443
+ * Proxy-Authorization: Basic YWRtaW46MTIzNDU2
+ * User-Agent: client
+ * Proxy-Connection: Keep-Alive
+ */
+
+/* struct http_response *http_client_do(http_client_t *client,
+                                     enum http_method method, const char *url,
                                      const struct linklist *headers,
-                                     const char *data, size_t len);
+                                     const char *data, size_t len)
+{
+    struct url_struct *target;
 
-void http_client_free(http_client_t *client);
+    assert(client);
+    assert(url);
 
-void http_response_free(struct http_response *resp);
+
+
+    return NULL;
+} */
+
+void http_client_free(http_client_t *client)
+{
+    assert(client);
+    if (client->proxy)
+        url_cleanup(client->proxy);
+    free(client);
+}
+
+void http_response_free(struct http_response *resp)
+{
+    assert(resp);
+    free(resp);
+}

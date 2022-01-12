@@ -10,9 +10,11 @@
 #include "linklist.h"
 #include "url.h"
 
-#define HTTP_GET "GET"
-#define HTTP_POST "POST"
-#define HTTP_CONNECT "CONNECT"
+enum http_method {
+    HTTP_GET = 0,
+    HTTP_POST,
+    HTTP_CONNECT,
+};
 
 typedef struct http_client http_client_t;
 
@@ -26,12 +28,11 @@ struct http_response {
 
 http_client_t *http_client_new(void);
 int http_client_set_proxy(http_client_t *client, const char *proxy);
-struct http_response *http_client_do(http_client_t *client, const char *method,
-                                     const char *url,
+struct http_response *http_client_do(http_client_t *client,
+                                     enum http_method method, const char *url,
                                      const struct linklist *headers,
                                      const char *data, size_t len);
 void http_client_free(http_client_t *client);
-
 void http_response_free(struct http_response *resp);
 
 #endif /* http.h */

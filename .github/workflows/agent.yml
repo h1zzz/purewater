@@ -22,15 +22,7 @@ jobs:
       run: |
         git submodule update --init
         
-    - name: Build x86/64 (linux) debug
-      run: |
-        cd agent
-        rm -rf build
-        mkdir build
-        cd build
-        cmake -DCMAKE_BUILD_TYPE="Debug" ..
-        cmake --build . --target agent
-    - name: Build x86/64 (linux) release
+    - name: Build x86/64 (linux)
       run: |
         cd agent
         rm -rf build
@@ -39,7 +31,7 @@ jobs:
         cmake -DCMAKE_BUILD_TYPE="Release" ..
         cmake --build . --target agent
         
-    - name: Build x86/64 (windows) release
+    - name: Build x86/64 (windows)
       run: |
         export CC=x86_64-w64-mingw32-gcc
         export CXX=x86_64-w64-mingw32-g++
