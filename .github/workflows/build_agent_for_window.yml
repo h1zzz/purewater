@@ -8,15 +8,11 @@ on:
 
 jobs:
   build:
-
     runs-on: windows-latest
-
     steps:
     - uses: actions/checkout@v2
-    
     - name: Initialize dependencies
       run: git submodule update --init
-    
     - name: Build Agent
       run: |
         cd agent
