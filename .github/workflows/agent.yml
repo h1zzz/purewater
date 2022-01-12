@@ -1,4 +1,4 @@
-name: agent
+name: build agent
 
 on:
   push:
