@@ -363,7 +363,7 @@ struct dns_node *dns_lookup(dns_t *dns, const char *name, int type)
         new_node->type = type;
         new_node->data_len = strlen(name);
 
-        strcpy(new_node->data, name);
+        memcpy(new_node->data, name, new_node->data_len);
 
         new_node->next = dns_node;
         dns_node = new_node;

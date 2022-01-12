@@ -100,7 +100,7 @@ int socks5_client_username_password_auth(socket_t sock, const char *user,
 
     buf[len++] = SOCKS5_VERSION;
 
-    ret = strlen(user);
+    ret = (int)strlen(user);
     if (ret >= 256) {
         debugf("username exceeds length limit: %s", user);
         return -1;
@@ -111,7 +111,7 @@ int socks5_client_username_password_auth(socket_t sock, const char *user,
     memcpy(buf + len, user, ret); /* uname */
     len += ret;
 
-    ret = strlen(passwd);
+    ret = (int)strlen(passwd);
     if (ret >= 256) {
         debugf("password exceeds length limit: %s", passwd);
         return -1;
@@ -197,7 +197,7 @@ int socks5_client_request(socket_t sock, uint8_t cmd, uint8_t atyp,
         len += 4; /* IPv4 address 32bit */
         break;
     case SOCKS5_DOMAINNAME:
-        ret = strlen(addr);
+        ret =(int) strlen(addr);
         if (ret == 0 || ret >= 256) {
             debugf("The length of the domain name exceeds the limit: %s", addr);
             return -1;
