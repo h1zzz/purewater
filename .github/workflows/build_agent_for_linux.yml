@@ -1,0 +1,21 @@
+name: Build Agent
+
+on:
+  push:
+  pull_request:
+  release:
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    
+    - uses: actions/checkout@v2
+    
+    - name: Set up CMake
+      run: |
+        cd agent
+        cmake -DCMAKE_BUILD_TYPE="Release" .
+        cmake --build . --target agent
