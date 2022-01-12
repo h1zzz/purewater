@@ -2,8 +2,9 @@ name: Build Agent for Linux
 
 on:
   push:
+    branches: [ main ]
   pull_request:
-  release:
+    branches: [ main ]
 
 jobs:
   build:
