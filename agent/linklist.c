@@ -21,8 +21,6 @@ void linklist_insert_next(struct linklist *list, struct linknode *pos,
                           struct linknode *node)
 {
     assert(list);
-    assert(pos);
-    assert(pos->list == list);
     assert(node);
 
     node->list = list;
@@ -31,6 +29,7 @@ void linklist_insert_next(struct linklist *list, struct linknode *pos,
     if (list->head) {
         node->next = pos ? pos->next : list->head;
         if (pos) {
+            assert(pos->list == list);
             if (pos->next)
                 pos->next->prev = node;
             else
