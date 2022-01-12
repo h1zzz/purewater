@@ -1,0 +1,24 @@
+name: Build Agent for MacOS
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    
+    - name: Initialize dependencies
+      run: git submodule update --init
+    
+    - name: Build Agent
+      run: |
+        cd agent
+        cmake -DCMAKE_BUILD_TYPE="Release" .
+        cmake --build . --target agent
