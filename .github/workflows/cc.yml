@@ -1,0 +1,29 @@
+name: Go
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    
+    - name: Set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.17
+    
+    - name: Initialization
+      run: |
+        openssl genrsa -out cc/key.pem 2048
+        openssl req -new -x509 -days 3650 -key cc/key.pem -out cc/cert.pem -subj "/C=US/ST= /L= /O= /OU= /CN= /emailAddress= "
+
+    - name: Build
+      run: |
+        cd cc
+        go build -v .
