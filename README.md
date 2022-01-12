@@ -6,4 +6,4 @@
 
 ## License
 
-Copyright MIT (c) 2021, h1zzz
+MIT Copyright (c) 2021-2022, h1zzz
