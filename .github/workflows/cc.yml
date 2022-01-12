@@ -1,4 +1,4 @@
-name: build cc
+name: Build CC
 
 on:
   push:
