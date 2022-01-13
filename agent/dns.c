@@ -318,7 +318,7 @@ int dns_add_dns_server(dns_t *dns, const char *host, uint16_t port)
     server->port = port;
 
     if (dns->server_tail)
-        server->next = dns->server_tail->next;
+        dns->server_tail->next = server;
     else
         dns->server_head = server;
 
