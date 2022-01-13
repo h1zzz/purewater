@@ -36,44 +36,26 @@ add_definitions(-DMBEDTLS_CONFIG_FILE="config.h")
 add_subdirectory(${PROJECT_SOURCE_DIR}/mbedtls/library)
 
 set(
-  HEADERS
-  connection.h
+  SOURCES
+  connect.h
+  connect.c
   debug.h
   dns.h
-  dynbuf.h
-  http.h
-  http_header.h
-  linklist.h
-  network.h
-  platform.h
-  proxy_https.h
-  proxy_socks.h
-  socket.h
-  socks.c
-  # tunnel_dns.h
-  # tunnel_http.h
-  url.h
-  util.h
-)
-
-set(
-  SOURCES
-  connection.c
   dns.c
+  dynbuf.h
   dynbuf.c
+  http.h
   http.c
-  http_header.c
-  linklist.c
   main.c
-  network.c
-  platform.c
-  proxy_https.c
-  proxy_socks.c
+  proxy.h
+  proxy.c
+  socket.h
   socket.c
+  socks.h
   socks.c
-  # tunnel_dns.c
-  # tunnel_http.c
+  url.h
   url.c
+  util.h
   util.c
 )
 
@@ -84,5 +66,5 @@ if(MSVC OR MINGW)
   list(APPEND LIBS iphlpapi)
 endif()
 
-add_executable(agent ${HEADERS} ${SOURCES})
+add_executable(agent ${SOURCES})
 target_link_libraries(agent PRIVATE ${LIBS})

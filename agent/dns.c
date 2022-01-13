@@ -15,7 +15,6 @@
 #include <ctype.h>
 
 #include "debug.h"
-#include "linklist.h"
 #include "socket.h"
 #include "util.h"
 
@@ -57,41 +56,15 @@ struct dns_rrs {
 #pragma pack(pop)
 
 struct dns_server {
-    struct linknode node;
+    struct dns_server *next;
     char *host;
     uint16_t port;
 };
 
 struct dns {
-    struct linklist dns_servers;
+    struct dns_server *server_head;
+    struct dns_server *server_tail;
 };
-
-static struct dns_server *dns_server_new(const char *host, uint16_t port)
-{
-    struct dns_server *server;
-
-    server = calloc(1, sizeof(struct dns_server));
-    if (!server) {
-        debug("calloc error");
-        return NULL;
-    }
-
-    server->host = xstrdup(host);
-    if (!server->host) {
-        debug("xstrdup error");
-        free(server);
-        return NULL;
-    }
-
-    server->port = port;
-    return server;
-}
-
-static void dns_server_free(struct dns_server *server)
-{
-    free(server->host);
-    free(server);
-}
 
 /*
  * TODO: Format multiple domain names.
@@ -318,8 +291,6 @@ dns_t *dns_new(void)
         return NULL;
     }
 
-    linklist_init(&dns->dns_servers, NULL, (linknode_free_t *)dns_server_free);
-
     return dns;
 }
 
@@ -331,14 +302,28 @@ int dns_add_dns_server(dns_t *dns, const char *host, uint16_t port)
     assert(host);
     assert(port != 0);
 
-    server = dns_server_new(host, port);
+    server = calloc(1, sizeof(struct dns_server));
     if (!server) {
-        debug("dns_server_new error");
+        debug("calloc error");
         return -1;
     }
 
-    linklist_insert_next(&dns->dns_servers, dns->dns_servers.tail,
-                         (struct linknode *)server);
+    server->host = xstrdup(host);
+    if (!server->host) {
+        debug("xstrdup error");
+        free(server);
+        return -1;
+    }
+
+    server->port = port;
+
+    if (dns->server_tail)
+        server->next = dns->server_tail->next;
+    else
+        dns->server_head = server;
+
+    dns->server_tail = server;
+
     return 0;
 }
 
@@ -346,7 +331,6 @@ struct dns_node *dns_lookup(dns_t *dns, const char *name, int type)
 {
     struct dns_node *dns_node, *new_node;
     struct dns_server *server;
-    struct linknode *node;
     char buf[10240];
     socket_t sock;
     int ret;
@@ -371,13 +355,12 @@ struct dns_node *dns_lookup(dns_t *dns, const char *name, int type)
         return dns_node;
     }
 
-    if (!dns->dns_servers.head) {
+    if (!dns->server_head) {
         debug("no dns_server");
         return NULL;
     }
 
-    for (node = dns->dns_servers.head; node; node = node->next) {
-        server = (struct dns_server *)node;
+    for (server = dns->server_head; server; server = server->next) {
 
         sock = xsocket(SOCK_UDP);
         if (sock == SOCK_INVAL) {
@@ -433,8 +416,18 @@ void dns_node_cleanup(struct dns_node *dns_node)
 
 void dns_free(dns_t *dns)
 {
+    struct dns_server *curr, *next;
+
     assert(dns);
-    linklist_destroy(&dns->dns_servers);
+
+    curr = dns->server_head;
+    while (curr) {
+        next = curr->next;
+        free(curr->host);
+        free(curr);
+        curr = next;
+    }
+
     free(dns);
 }
 

@@ -1,12 +1,12 @@
-/* MIT License Copyright (c) 2021, h1zzz */
+/* MIT License Copyright (c) 2022, h1zzz */
 
-#include "proxy_socks.h"
+#include "proxy.h"
 
 #include <string.h>
 
 #include "debug.h"
 #include "dns.h"
-#include "network.h"
+#include "connect.h"
 #include "socket.h"
 #include "socks.h"
 #include "util.h"

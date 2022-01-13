@@ -21,6 +21,16 @@
 #define PATH_SEPARATOR '/'
 #endif /* _WIN32 */
 
+void xsleep(int seconds)
+{
+    assert(seconds > 0);
+#ifdef _WIN32
+    Sleep(seconds * 1000);
+#else  /* No defined _WIN32 */
+    sleep(seconds);
+#endif /* _WIN32 */
+}
+
 const char *xbasename(const char *str)
 {
     const char *s = NULL;

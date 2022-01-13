@@ -14,6 +14,9 @@ typedef socket_t proxy_connect_t(const char *host, uint16_t port,
 
 typedef struct tcpconn tcpconn_t;
 
+socket_t tcp_connect(const char *domain, uint16_t port);
+socket_t udp_connect(const char *domain, uint16_t port);
+
 /* Create a connection handle, return a pointer to the handle on success, return
    NULL on failure */
 tcpconn_t *tcpconn_new(void);
