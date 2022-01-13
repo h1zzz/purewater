@@ -6,21 +6,25 @@
 
 #include "debug.h"
 #include "http.h"
-#include "dns.h"
 
 int main(int argc, char *argv[])
 {
-    struct dns_node *node;
+    struct http_request *req;
+    dynbuf_t *buf;
 
     (void)argc;
     (void)argv;
 
-    node = dns_lookup_ret("h1zzz.net", DNS_A);
+    req = http_request_new(HTTP_GET, "https://h1zzz.net/index?a=b#cc", NULL, 0);
 
-    while (node) {
-        debugf("%s", node->data);
-        node = node->next;
-    }
+    http_request_add_header(req, "Hello", "World");
+    http_request_add_header(req, "Cookie", "cookie");
+
+    buf = http_request_build(req);
+    http_request_free(req);
+
+    debugf("%s", dynbuf_ptr(buf));
+    dynbuf_free(buf);
 
     return 0;
 }
