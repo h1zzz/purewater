@@ -426,6 +426,9 @@ struct http_response *http_client_do(http_client_t *client,
         return NULL;
     }
 
+    if (client->proxy) {
+    }
+
     if (strcmp(req->url->scheme, "https") == 0) {
         ret = tcpconn_ssl_connect(conn, req->url->host, req->url->port);
         if (ret == -1) {
