@@ -22,23 +22,22 @@ struct http_header {
     char *value;
 };
 
+struct http_headers {
+    struct http_header *head;
+    struct http_header *tail;
+};
+
 struct http_request {
     enum http_method method;
     struct url_struct *url;
-    struct {
-        struct http_header *header_head;
-        struct http_header *header_tail;
-    } headers;
+    struct http_headers headers;
     char *data;
     size_t length;
 };
 
 struct http_response {
     int status_code;
-    struct {
-        struct http_header *header_head;
-        struct http_header *header_tail;
-    } headers;
+    struct http_headers headers;
     char *data;
     size_t content_length;
     tcpconn_t *rw_conn;
@@ -46,15 +45,18 @@ struct http_response {
 
 typedef struct http_client http_client_t;
 
+int http_headers_append(struct http_headers *headers, const char *name,
+                        const char *value);
+const char *http_headers_get(const struct http_headers *headers,
+                             const char *name);
+void http_headers_cleanup(struct http_headers *headers);
+
 struct http_request *http_request_new(enum http_method method, const char *url,
                                       const char *data, size_t length);
-int http_request_add_header(struct http_request *req, const char *name,
-                            const char *value);
 void http_request_free(struct http_request *req);
+dynbuf_t *http_request_build(const struct http_request *req);
 
 void http_response_free(struct http_response *resp);
-
-dynbuf_t *http_request_build(struct http_request *req);
 
 http_client_t *http_client_new(void);
 int http_client_set_proxy(http_client_t *client, const char *url);

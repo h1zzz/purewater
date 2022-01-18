@@ -10,21 +10,37 @@
 int main(int argc, char *argv[])
 {
     struct http_request *req;
-    dynbuf_t *buf;
+    http_client_t *client;
+    struct http_response *resp;
+    struct http_header *header;
 
     (void)argc;
     (void)argv;
 
-    req = http_request_new(HTTP_GET, "https://h1zzz.net/index?a=b#cc", NULL, 0);
+    client = http_client_new();
 
-    http_request_add_header(req, "Hello", "World");
-    http_request_add_header(req, "Cookie", "cookie");
+    req = http_request_new(HTTP_GET, "https://h1zzz.net", NULL, 0);
+    if (!req) {
+        return -1;
+    }
 
-    buf = http_request_build(req);
+    http_headers_append(&req->headers, "Connection", "close");
+
+    resp = http_client_do(client, req);
+    if (!resp) {
+        return -1;
+    }
+
     http_request_free(req);
+    http_client_free(client);
 
-    debugf("%s", dynbuf_ptr(buf));
-    dynbuf_free(buf);
+    for (header = resp->headers.head; header; header = header->next) {
+        debugf("%s: %s", header->name, header->value);
+    }
+
+    debugf("%d", resp->status_code);
+    debugf("%lu", resp->content_length);
+    debugf("%s", resp->data);
 
     return 0;
 }
