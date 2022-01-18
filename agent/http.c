@@ -182,7 +182,7 @@ dynbuf_t *http_request_build(const struct http_request *req)
     dynbuf_appendf(buf, "Accept: */*\r\n");
 
     if (req->data && req->length) {
-        dynbuf_appendf(buf, "Content-Length: %lu\r\n", req->length);
+        dynbuf_appendf(buf, "Content-Length: %zu\r\n", req->length);
     }
 
     /* Setup headers */
@@ -200,7 +200,6 @@ void http_response_free(struct http_response *resp)
     assert(resp);
     free(resp->data);
     http_headers_cleanup(&resp->headers);
-    tcpconn_free(resp->rw_conn);
     free(resp);
 }
 
@@ -236,14 +235,13 @@ int http_client_set_proxy(http_client_t *client, const char *url)
     return 0;
 }
 
-static int http_response_readline(struct http_response *resp, void *buf,
-                                  size_t size)
+static int http_response_readline(tcpconn_t *conn, void *buf, size_t size)
 {
     char *ptr = buf, ch;
     int n = 0, ret;
 
     while ((size_t)n < size) {
-        ret = tcpconn_recv(resp->rw_conn, &ch, 1);
+        ret = tcpconn_recv(conn, &ch, 1);
         if (ret == -1) {
             debug("tcpconn_recv error");
             return -1;
@@ -261,15 +259,14 @@ static int http_response_readline(struct http_response *resp, void *buf,
     return n;
 }
 
-static int http_response_readn(struct http_response *resp, void *buf,
-                               size_t size)
+static int http_response_readn(tcpconn_t *conn, void *buf, size_t size)
 {
     size_t nleft = size;
     int nread;
     char *ptr = buf;
 
     while (nleft > 0) {
-        nread = tcpconn_recv(resp->rw_conn, ptr, nleft);
+        nread = tcpconn_recv(conn, ptr, nleft);
         if (nread == -1) {
             debug("tcpconn_recv error");
             return -1;
@@ -281,7 +278,7 @@ static int http_response_readn(struct http_response *resp, void *buf,
         ptr += nread;
     }
 
-    return size - nleft;
+    return (int)(size - nleft);
 }
 
 static int http_header_parse(struct http_response *resp, const char *str)
@@ -331,10 +328,8 @@ static struct http_response *parse_http_response(tcpconn_t *conn)
         goto err_new_resp;
     }
 
-    resp->rw_conn = conn;
-
     /* Parse http status */
-    ret = http_response_readline(resp, line, sizeof(line));
+    ret = http_response_readline(conn, line, sizeof(line));
     if (ret == -1) {
         debug("http_readline error");
         goto err_parse_status;
@@ -352,7 +347,7 @@ static struct http_response *parse_http_response(tcpconn_t *conn)
 
     /* Parse http response header */
     while (1) {
-        ret = http_response_readline(resp, line, sizeof(line));
+        ret = http_response_readline(conn, line, sizeof(line));
         if (ret == -1) {
             debug("http_readline error");
             goto err_parse_header;
@@ -391,7 +386,7 @@ static struct http_response *parse_http_response(tcpconn_t *conn)
         goto err_read_data;
     }
 
-    ret = http_response_readn(resp, resp->data, resp->content_length);
+    ret = http_response_readn(conn, resp->data, resp->content_length);
     if (ret == -1) {
         debug("http_response_readn error");
         free(resp->data);
@@ -411,8 +406,10 @@ err_new_resp:
 }
 
 struct http_response *http_client_do(http_client_t *client,
-                                     const struct http_request *req)
+                                     const struct http_request *req,
+                                     tcpconn_t *ret_conn)
 {
+    struct http_response *resp;
     tcpconn_t *conn;
     dynbuf_t *buf;
     int ret;
@@ -426,8 +423,7 @@ struct http_response *http_client_do(http_client_t *client,
         return NULL;
     }
 
-    if (client->proxy) {
-    }
+    if (client->proxy) {}
 
     if (strcmp(req->url->scheme, "https") == 0) {
         ret = tcpconn_ssl_connect(conn, req->url->host, req->url->port);
@@ -472,7 +468,15 @@ struct http_response *http_client_do(http_client_t *client,
 
     dynbuf_free(buf);
 
-    return parse_http_response(conn);
+    resp = parse_http_response(conn);
+
+    if (ret_conn) {
+        ret_conn = conn;
+    } else {
+        tcpconn_free(conn);
+    }
+
+    return resp;
 
 err_send_req:
     dynbuf_free(buf);

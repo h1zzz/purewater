@@ -26,7 +26,7 @@ int main(int argc, char *argv[])
 
     http_headers_append(&req->headers, "Connection", "close");
 
-    resp = http_client_do(client, req);
+    resp = http_client_do(client, req, NULL);
     if (!resp) {
         return -1;
     }
@@ -39,7 +39,7 @@ int main(int argc, char *argv[])
     }
 
     debugf("%d", resp->status_code);
-    debugf("%lu", resp->content_length);
+    debugf("%zu", resp->content_length);
     debugf("%s", resp->data);
 
     return 0;

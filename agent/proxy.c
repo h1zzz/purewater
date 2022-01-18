@@ -87,3 +87,9 @@ err:
     xclose(sock);
     return SOCK_INVAL;
 }
+
+/* socket_t proxy_https(const char *host, uint16_t port, const char *proxy_host,
+                     uint16_t proxy_port, const char *proxy_user,
+                     const char *proxy_passwd)
+{
+} */

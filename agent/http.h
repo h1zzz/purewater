@@ -40,7 +40,6 @@ struct http_response {
     struct http_headers headers;
     char *data;
     size_t content_length;
-    tcpconn_t *rw_conn;
 };
 
 typedef struct http_client http_client_t;
@@ -61,7 +60,8 @@ void http_response_free(struct http_response *resp);
 http_client_t *http_client_new(void);
 int http_client_set_proxy(http_client_t *client, const char *url);
 struct http_response *http_client_do(http_client_t *client,
-                                     const struct http_request *req);
+                                     const struct http_request *req,
+                                     tcpconn_t *ret_conn);
 void http_client_free(http_client_t *client);
 
 #endif /* http.h */
