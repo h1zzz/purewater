@@ -70,8 +70,9 @@ int dynbuf_resize(dynbuf_t *buf, size_t size)
 
 static int dynbuf_extend_size(dynbuf_t *buf, size_t size)
 {
-    if (buf->size < buf->length + size)
+    if (buf->size < buf->length + size) {
         return dynbuf_resize(buf, buf->length + size);
+    }
     return 0;
 }
 

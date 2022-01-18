@@ -82,8 +82,9 @@ static void format_dns_name(char *name)
     /* www.h1zzz.net. */
     while (*ptr) {
         if (ptr[n] == '.') {
-            for (i = n - 1; i >= 0; i--)
+            for (i = n - 1; i >= 0; i--) {
                 ptr[i + 1] = ptr[i];
+            }
             *ptr = n;
             ptr = ptr + n + 1; /* +1 skip '.' */
             n = 0;
@@ -115,23 +116,26 @@ static int send_question(socket_t sock, const char *name, int type)
 
     /* dns question. */
     /* format "www.h1zzz.net" to "www.h1zzz.net." */
-    if (strlen(name) + 1 >= sizeof(buf) - n)
+    if (strlen(name) + 1 >= sizeof(buf) - n) {
         return -1;
+    }
 
     qname = buf + n;
     n += snprintf(qname, sizeof(buf) - n, "%s.", name);
     format_dns_name(qname);
 
-    if (n >= sizeof(buf))
+    if (n >= sizeof(buf)) {
         return -1;
+    }
 
     buf[n++] = '\0';
 
     question = (struct dns_question *)(buf + n);
     n += sizeof(struct dns_question);
 
-    if (n > sizeof(buf))
+    if (n > sizeof(buf)) {
         return -1;
+    }
 
     question->qtype = htons(type);
     question->qclass = htons(CLASS_IN);
@@ -159,24 +163,29 @@ static int dns_read_name(char *data, char *ptr, char *name, size_t size)
 
         n = *ptr++;
 
-        if (!jumped)
+        if (!jumped) {
             count += n + 1;
+        }
 
         while (n--) {
             ch = *ptr++;
-            if (name && i < size)
+            if (name && i < size) {
                 name[i++] = ch;
+            }
         }
 
-        if (name && i < size)
+        if (name && i < size) {
             name[i++] = '.';
+        }
     }
 
-    if (jumped)
+    if (jumped) {
         count++;
+    }
 
-    if (name && i < size)
+    if (name && i < size) {
         name[i - 1] = '\0';
+    }
 
     return count;
 }
@@ -230,37 +239,43 @@ static int parse_answer(struct dns_node **res, char *data, int n)
     int pos, ret;
 
     pos = sizeof(struct dns_header);
-    if (pos >= n)
+    if (pos >= n) {
         return -1;
+    }
 
     header = (struct dns_header *)data;
     an_count = ntohs(header->an_count);
 
     ret = dns_read_name(data, data + pos, NULL, 0);
-    if (ret >= n - pos)
+    if (ret >= n - pos) {
         return -1;
+    }
 
     pos += ret;
-    if (sizeof(struct dns_question) > (size_t)n - pos)
+    if (sizeof(struct dns_question) > (size_t)n - pos) {
         return -1;
+    }
 
     pos += sizeof(struct dns_question);
 
     for (i = 0; i < an_count; i++) {
         ret = dns_read_name(data, data + pos, NULL, 0);
-        if (ret >= n - pos)
+        if (ret >= n - pos) {
             return -1;
+        }
 
         pos += ret;
-        if (sizeof(struct dns_rrs) >= (size_t)n - pos)
+        if (sizeof(struct dns_rrs) >= (size_t)n - pos) {
             return -1;
+        }
 
         answer = (struct dns_rrs *)(data + pos);
         pos += sizeof(struct dns_rrs);
 
         rd_length = ntohs(answer->rd_length);
-        if (rd_length > n - pos)
+        if (rd_length > n - pos) {
             return -1;
+        }
 
         type = ntohs(answer->type);
         class = ntohs(answer->class);
@@ -317,10 +332,11 @@ int dns_add_dns_server(dns_t *dns, const char *host, uint16_t port)
 
     server->port = port;
 
-    if (dns->server_tail)
+    if (dns->server_tail) {
         dns->server_tail->next = server;
-    else
+    } else {
         dns->server_head = server;
+    }
 
     dns->server_tail = server;
 
@@ -394,8 +410,9 @@ struct dns_node *dns_lookup(dns_t *dns, const char *name, int type)
 
     cleanup:
         xclose(sock);
-        if (ret != -1)
+        if (ret != -1) {
             break;
+        }
     }
 
     return dns_node;
@@ -495,20 +512,24 @@ static int dns_add_dns_server_for_local(dns_t *dns)
 
     while (1) {
         memset(buf, 0, sizeof(buf));
-        if (fgets(buf, sizeof(buf) - 1, fp) == NULL)
+        if (fgets(buf, sizeof(buf) - 1, fp) == NULL) {
             break;
+        }
 
-        if (buf[0] == '#') /* skip comment */
+        if (buf[0] == '#') { /* skip comment */
             continue;
+        }
 
         ptr = strchr(buf, '\n');
-        if (!ptr)
+        if (!ptr) {
             continue;
+        }
 
         *ptr = '\0';
 
-        if (strncmp(buf, "nameserver ", 11) != 0)
+        if (strncmp(buf, "nameserver ", 11) != 0) {
             continue;
+        }
 
         ptr = &buf[11];
 
@@ -548,8 +569,9 @@ struct dns_node *dns_lookup_ret(const char *host, int type)
 
     dns_add_dns_server_for_local(dns);
 
-    for (i = 0; dns_host[i]; i++)
+    for (i = 0; dns_host[i]; i++) {
         dns_add_dns_server(dns, dns_host[i], DNS_PORT);
+    }
 
     dns_node = dns_lookup(dns, host, type);
     dns_free(dns);

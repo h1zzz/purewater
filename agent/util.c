@@ -38,8 +38,9 @@ const char *xbasename(const char *str)
     assert(str);
 
     while (*str) {
-        if (*str++ == PATH_SEPARATOR)
+        if (*str++ == PATH_SEPARATOR) {
             s = str;
+        }
     }
     return s;
 }
@@ -65,12 +66,15 @@ char *xstrdup(const char *str)
     while ('\0' != str[n++]) {}
 
     ptr = calloc(1, n);
-    if (!ptr)
+    if (!ptr) {
+        debug("calloc error");
         return NULL;
+    }
 
     s = ptr;
-    while (n--)
+    while (n--) {
         *s++ = *str++;
+    }
 
     return ptr;
 }
@@ -84,8 +88,9 @@ int is_ipv4(const char *ip)
     assert(ip);
 
     for (i = 0; i < sizeof(struct in_addr); i++) {
-        if (*s == '\0')
+        if (*s == '\0') {
             return 0;
+        }
 
         n = 0;
 
@@ -99,12 +104,14 @@ int is_ipv4(const char *ip)
             }
         }
 
-        if (n > 255)
+        if (n > 255) {
             return 0;
+        }
     }
 
-    if (*s != '\0' || i != sizeof(struct in_addr))
+    if (*s != '\0' || i != sizeof(struct in_addr)) {
         return 0;
+    }
 
     return 1;
 }

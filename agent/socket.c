@@ -100,11 +100,13 @@ again:
     ret = connect(sock, (struct sockaddr *)&addr, sizeof(addr));
     if (ret == -1) {
 #ifdef _WIN32
-        if (WSAGetLastError() == WSAEINTR)
+        if (WSAGetLastError() == WSAEINTR) {
             goto again;
+        }
 #else  /* No define _WIN32 */
-        if (errno == EINTR)
+        if (errno == EINTR) {
             goto again;
+        }
         debug("connect error");
         return -1;
 #endif /* _WIN32 */
@@ -157,11 +159,13 @@ again:
     conn = accept(sock, (struct sockaddr *)&si, &silen);
     if (conn == SOCK_INVAL) {
 #ifdef _WIN32
-        if (WSAGetLastError() == WSAEINTR)
+        if (WSAGetLastError() == WSAEINTR) {
             goto again;
+        }
 #else  /* No define _WIN32 */
-        if (errno == EINTR)
+        if (errno == EINTR) {
             goto again;
+        }
 #endif /* _WIN32 */
         debug("accept error");
         return SOCK_INVAL;
@@ -191,16 +195,18 @@ again:
 #ifdef _WIN32
     ret = recv(sock, buf, (int)size, 0);
     if (ret == -1) {
-        if (WSAGetLastError() == WSAEINTR)
+        if (WSAGetLastError() == WSAEINTR) {
             goto again;
+        }
         debug("recv error");
         return -1;
     }
 #else  /* No define _WIN32 */
     ret = recv(sock, buf, size, MSG_NOSIGNAL);
     if (ret == -1) {
-        if (errno == EINTR)
+        if (errno == EINTR) {
             goto again;
+        }
         debug("recv error");
         return -1;
     }
@@ -220,16 +226,18 @@ again:
 #ifdef _WIN32
     ret = send(sock, data, (int)len, 0);
     if (ret == -1) {
-        if (WSAGetLastError() == WSAEINTR)
+        if (WSAGetLastError() == WSAEINTR) {
             goto again;
+        }
         debug("send error");
         return -1;
     }
 #else  /* No define _WIN32 */
     ret = send(sock, data, len, MSG_NOSIGNAL);
     if (ret == -1) {
-        if (errno == EINTR)
+        if (errno == EINTR) {
             goto again;
+        }
         debug("send error");
         return -1;
     }

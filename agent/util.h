@@ -8,8 +8,9 @@
 
 #define xfree(ptr)     \
     do {               \
-        if (ptr)       \
+        if (ptr) {     \
             free(ptr); \
+        }              \
         (ptr) = NULL;  \
     } while (0)
 

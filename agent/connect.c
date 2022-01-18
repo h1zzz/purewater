@@ -281,10 +281,12 @@ int tcpconn_recv(tcpconn_t *conn, void *buf, size_t size)
         ret = mbedtls_ssl_read(&conn->ssl, (unsigned char *)buf, size);
         if (ret < 0) {
             if (ret == MBEDTLS_ERR_SSL_WANT_READ ||
-                ret == MBEDTLS_ERR_SSL_WANT_WRITE)
+                ret == MBEDTLS_ERR_SSL_WANT_WRITE) {
                 goto again;
-            if (ret == MBEDTLS_ERR_SSL_PEER_CLOSE_NOTIFY)
+            }
+            if (ret == MBEDTLS_ERR_SSL_PEER_CLOSE_NOTIFY) {
                 return 0;
+            }
             debugf("failed\n  ! mbedtls_ssl_read returned %d\n\n", ret);
             return -1;
         }
@@ -307,8 +309,9 @@ int tcpconn_send(tcpconn_t *conn, const void *data, size_t len)
         ret = mbedtls_ssl_write(&conn->ssl, (const unsigned char *)data, len);
         if (ret <= 0) {
             if (ret == MBEDTLS_ERR_SSL_WANT_READ ||
-                ret == MBEDTLS_ERR_SSL_WANT_WRITE)
+                ret == MBEDTLS_ERR_SSL_WANT_WRITE) {
                 goto again;
+            }
             debugf(" failed\n  ! mbedtls_ssl_write returned %d\n\n", ret);
             return -1;
         }

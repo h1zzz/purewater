@@ -33,8 +33,9 @@ socket_t proxy_socks5(const char *host, uint16_t port, const char *proxy_host,
     nmethods = 0;
     methods[nmethods++] = SOCKS5_NO_AUTHENTICATION_REQUIRED;
 
-    if (proxy_user && proxy_passwd)
+    if (proxy_user && proxy_passwd) {
         methods[nmethods++] = SOCKS5_USERNAME_PASSWORD;
+    }
 
     ret = socks5_client_negotiate_auth_method(sock, methods, nmethods);
     if (ret == -1) {

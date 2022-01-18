@@ -12,10 +12,11 @@ static uint16_t get_service_port(const char *scheme)
 {
     uint16_t port = 0;
 
-    if (strcmp(scheme, "http") == 0)
+    if (strcmp(scheme, "http") == 0) {
         port = 80;
-    else if (strcmp(scheme, "https") == 0)
+    } else if (strcmp(scheme, "https") == 0) {
         port = 443;
+    }
 
     return port;
 }
