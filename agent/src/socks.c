@@ -282,7 +282,7 @@ int socks5_client_connect(struct socks5_client *client,
     assert(host);
     assert(port);
 
-    sprintf(sport, "%hu", client->port);
+    snprintf(sport, sizeof(sport), "%hu", client->port);
     mbedtls_net_init(ctx);
 
     ret = mbedtls_net_connect(ctx, client->host, sport, MBEDTLS_NET_PROTO_TCP);
