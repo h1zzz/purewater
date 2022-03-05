@@ -3,8 +3,7 @@
 #ifndef _DEBUG_H
 #define _DEBUG_H
 
-#ifdef NDEBUG
-#else /* No define NDEBUG */
+#ifndef NDEBUG
 #include <assert.h>
 #include <stdio.h>
 
@@ -17,6 +16,7 @@
 #define assert(expr)
 #define debug(str)
 #define debugf(fmt, ...)
+#define dbgerr(str)
 
 #else /* No define NDEBUG */
 
@@ -27,6 +27,8 @@
 #define debugf(fmt, ...)                                                       \
     fprintf(stdout, "\033[1;90m[%s:%d] \033[0m" fmt "\n", xbasename(__FILE__), \
             __LINE__, __VA_ARGS__);
+
+#define dbgerr(str) perror(str)
 
 #endif /* NDEBUG */
 

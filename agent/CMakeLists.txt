@@ -37,33 +37,18 @@ add_subdirectory(${PROJECT_SOURCE_DIR}/mbedtls/library)
 
 set(
   SOURCES
-  connect.h
-  connect.c
-  debug.h
-  dns.h
-  dns.c
-  dynbuf.h
-  dynbuf.c
-  http.h
-  http.c
-  main.c
-  proxy.h
-  proxy.c
-  socket.h
-  socket.c
-  socks.h
-  socks.c
-  url.h
-  url.c
-  util.h
-  util.c
+  src/debug.h
+  src/main.c
+  src/socks.h
+  src/socks.c
+  src/util.h
+  src/util.c
 )
 
 set(LIBS mbedtls)
 
 if(MSVC OR MINGW)
   list(APPEND LIBS ws2_32)
-  list(APPEND LIBS iphlpapi)
 endif()
 
 add_executable(agent ${SOURCES})
