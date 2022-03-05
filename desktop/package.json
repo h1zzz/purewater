@@ -1,0 +1,14 @@
+{
+  "name": "Purewater",
+  "version": "1.0.0",
+  "main": "src/main.js",
+  "repository": "https://github.com/h1zzz/purewater",
+  "author": "h1zzz",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^17.0.1"
+  },
+  "scripts": {
+    "start": "electron ."
+  }
+}
