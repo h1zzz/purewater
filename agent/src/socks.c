@@ -71,7 +71,7 @@ struct socks5_client *socks5_client_new(const char *host, uint16_t port,
 
     assert(strlen(host) < sizeof(client->host));
 
-    strcpy(client->host, host);
+    memcpy(client->host, host, strlen(host));
     client->port = port;
 
     if (!user || !passwd) {
@@ -81,8 +81,8 @@ struct socks5_client *socks5_client_new(const char *host, uint16_t port,
     assert(strlen(user) < sizeof(client->user));
     assert(strlen(passwd) < sizeof(client->passwd));
 
-    strcpy(client->user, user);
-    strcpy(client->passwd, passwd);
+    memcpy(client->user, user, strlen(user));
+    memcpy(client->passwd, passwd, strlen(passwd));
 
     return client;
 }
