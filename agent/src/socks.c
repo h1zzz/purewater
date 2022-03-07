@@ -294,7 +294,7 @@ int socks5_client_connect(struct socks5_client *client,
     nmethods = 0;
     methods[nmethods++] = SOCKS5_NO_AUTHENTICATION_REQUIRED;
 
-    if (client->user[0] != 0 && client->passwd[0] != 0) {
+    if (client->user[0] && client->passwd[0]) {
         methods[nmethods++] = SOCKS5_USERNAME_PASSWORD;
     }
 

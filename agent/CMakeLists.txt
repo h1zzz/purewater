@@ -39,6 +39,8 @@ set(
   SOURCES
   src/debug.h
   src/main.c
+  src/proxy.h
+  src/proxy.c
   src/socks.h
   src/socks.c
   src/util.h
