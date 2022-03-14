@@ -18,8 +18,7 @@ struct http_proxy {
 };
 
 struct http_proxy *http_proxy_new(const char *host, uint16_t port,
-                                  const char *user, const char *passwd)
-{
+                                  const char *user, const char *passwd) {
     struct http_proxy *proxy;
 
     assert(host);
@@ -27,7 +26,7 @@ struct http_proxy *http_proxy_new(const char *host, uint16_t port,
 
     proxy = calloc(1, sizeof(struct http_proxy));
     if (!proxy) {
-        dbgerr("calloc");
+        DBGERR("calloc");
         return NULL;
     }
 
@@ -56,8 +55,7 @@ struct http_proxy *http_proxy_new(const char *host, uint16_t port,
  */
 
 int http_proxy_connect(struct http_proxy *proxy, mbedtls_net_context *ctx,
-                       const char *host, uint16_t port)
-{
+                       const char *host, uint16_t port) {
     unsigned char base64[512] = {0}, str[256] = {0};
     char buf[1024] = {0};
     int ret;
@@ -84,7 +82,7 @@ int http_proxy_connect(struct http_proxy *proxy, mbedtls_net_context *ctx,
         ret = mbedtls_base64_encode(base64, sizeof(base64), &olen, str,
                                     (size_t)ret);
         if (ret != 0) {
-            debug("mbedtls_base64_encode error");
+            DBG("mbedtls_base64_encode error");
             return -1;
         }
 
@@ -107,29 +105,29 @@ int http_proxy_connect(struct http_proxy *proxy, mbedtls_net_context *ctx,
     snprintf((char *)str, sizeof(str), "%hu", proxy->port);
     mbedtls_net_init(ctx);
 
-    debugf("%s:%s", proxy->host, str);
+    DBGF("%s:%s", proxy->host, str);
 
     ret = mbedtls_net_connect(ctx, proxy->host, (char *)str,
                               MBEDTLS_NET_PROTO_TCP);
     if (ret != 0) {
-        debug("mbedtls_net_connect error");
+        DBG("mbedtls_net_connect error");
         goto err;
     }
 
     ret = mbedtls_net_send(ctx, (unsigned char *)buf, len);
     if (ret <= 0) {
-        debug("mbedtls_net_send error");
+        DBG("mbedtls_net_send error");
         goto err;
     }
 
     ret = mbedtls_net_recv(ctx, (unsigned char *)buf, sizeof(buf));
     if (ret <= 0) {
-        debug("mbedtls_net_recv error");
+        DBG("mbedtls_net_recv error");
         goto err;
     }
 
     if (!strstr(buf, " 200 Connection established\r\n")) {
-        debugf("fail: %s", buf);
+        DBGF("fail: %s", buf);
         goto err;
     }
 
@@ -140,8 +138,7 @@ err:
     return -1;
 }
 
-void http_proxy_free(struct http_proxy *proxy)
-{
+void http_proxy_free(struct http_proxy *proxy) {
     assert(proxy);
     free(proxy);
 }

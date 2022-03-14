@@ -20,8 +20,7 @@
 #define PATH_SEPARATOR '/'
 #endif /* _WIN32 */
 
-void xsleep(int seconds)
-{
+void xsleep(int seconds) {
     assert(seconds > 0);
 #ifdef _WIN32
     Sleep(seconds * 1000);
@@ -30,8 +29,7 @@ void xsleep(int seconds)
 #endif /* _WIN32 */
 }
 
-const char *xbasename(const char *str)
-{
+const char *xbasename(const char *str) {
     const char *s = NULL;
 
     assert(str);
@@ -44,8 +42,7 @@ const char *xbasename(const char *str)
     return s;
 }
 
-int xrand(void)
-{
+int xrand(void) {
     static int sranded = 0;
 
     if (!sranded) {
@@ -55,18 +52,18 @@ int xrand(void)
     return rand();
 }
 
-char *xstrdup(const char *str)
-{
+char *xstrdup(const char *str) {
     char *ptr, *s;
     size_t n = 0;
 
     assert(str);
 
-    while ('\0' != str[n++]) {}
+    while ('\0' != str[n++]) {
+    }
 
     ptr = calloc(1, n);
     if (!ptr) {
-        debug("calloc error");
+        DBG("calloc error");
         return NULL;
     }
 

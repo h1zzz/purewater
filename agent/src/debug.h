@@ -13,22 +13,24 @@
 
 #ifdef NDEBUG
 
-#define assert(expr)
-#define debug(str)
-#define debugf(fmt, ...)
-#define dbgerr(str)
+#define ASSERT(expr)
+#define DBG(str)
+#define DBGF(fmt, ...)
+#define DBGERR(str)
 
 #else /* No define NDEBUG */
 
-#define debug(str)                                                             \
+#define ASSERT(expr) assert(expr)
+
+#define DBG(str)                                                               \
     fprintf(stdout, "\033[1;90m[%s:%d] \033[0m" str "\n", xbasename(__FILE__), \
             __LINE__);
 
-#define debugf(fmt, ...)                                                       \
+#define DBGF(fmt, ...)                                                         \
     fprintf(stdout, "\033[1;90m[%s:%d] \033[0m" fmt "\n", xbasename(__FILE__), \
             __LINE__, __VA_ARGS__);
 
-#define dbgerr(str) perror(str)
+#define DBGERR(str) perror(str)
 
 #endif /* NDEBUG */
 
