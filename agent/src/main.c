@@ -1,13 +1,16 @@
 /* MIT License Copyright (c) 2021, h1zzz */
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
 
 #include "debug.h"
 #include "util.h"
 
 struct options {
-    const char *program;
-    const char *socks5;
+    const char *program; /* program name */
+    const char *socks5;  /* socks5 proxy */
+    const char *proxy;   /* http proxy */
     const char *user;
     const char *passwd;
     const char *proto;
@@ -30,7 +33,10 @@ static void readopts(int argc, char *argv[]) {
 
 int main(int argc, char *argv[]) {
     readopts(argc, argv);
-    debugf("%s", opts.program);
+
+    srand((unsigned int)time(NULL));
+
+    DBGF("%s", opts.program);
 
     return 0;
 }

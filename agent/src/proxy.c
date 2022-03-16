@@ -21,8 +21,8 @@ struct http_proxy *http_proxy_new(const char *host, uint16_t port,
                                   const char *user, const char *passwd) {
     struct http_proxy *proxy;
 
-    assert(host);
-    assert(port);
+    ASSERT(host);
+    ASSERT(port);
 
     proxy = calloc(1, sizeof(struct http_proxy));
     if (!proxy) {
@@ -30,7 +30,7 @@ struct http_proxy *http_proxy_new(const char *host, uint16_t port,
         return NULL;
     }
 
-    assert(strlen(host) < sizeof(proxy->host));
+    ASSERT(strlen(host) < sizeof(proxy->host));
 
     memcpy(proxy->host, host, strlen(host));
     proxy->port = port;
@@ -39,8 +39,8 @@ struct http_proxy *http_proxy_new(const char *host, uint16_t port,
         return proxy;
     }
 
-    assert(strlen(user) < sizeof(proxy->user));
-    assert(strlen(passwd) < sizeof(proxy->passwd));
+    ASSERT(strlen(user) < sizeof(proxy->user));
+    ASSERT(strlen(passwd) < sizeof(proxy->passwd));
 
     memcpy(proxy->user, user, strlen(user));
     memcpy(proxy->passwd, passwd, strlen(passwd));
@@ -61,22 +61,22 @@ int http_proxy_connect(struct http_proxy *proxy, mbedtls_net_context *ctx,
     int ret;
     size_t olen, len = 0;
 
-    assert(proxy);
-    assert(ctx);
-    assert(host);
-    assert(port);
+    ASSERT(proxy);
+    ASSERT(ctx);
+    ASSERT(host);
+    ASSERT(port);
 
     ret = snprintf(buf + len, sizeof(buf) - len, "CONNECT %s:%hu HTTP/1.1\r\n",
                    host, port);
-    assert(ret > 0);
+    ASSERT(ret > 0);
 
     len += ret;
-    assert(len < sizeof(buf));
+    ASSERT(len < sizeof(buf));
 
     if (proxy->user[0] && proxy->passwd[0]) {
         ret = snprintf((char *)str, sizeof(str), "%s:%s", proxy->user,
                        proxy->passwd);
-        assert(ret > 0 && (size_t)ret < sizeof(str));
+        ASSERT(ret > 0 && (size_t)ret < sizeof(str));
 
         /* Base64 encode the username and password */
         ret = mbedtls_base64_encode(base64, sizeof(base64), &olen, str,
@@ -89,18 +89,18 @@ int http_proxy_connect(struct http_proxy *proxy, mbedtls_net_context *ctx,
         /* Add the username and password to the request message */
         ret = snprintf(buf + len, sizeof(buf) - len,
                        "Proxy-Authorization: Basic %s\r\n", base64);
-        assert(ret > 0);
+        ASSERT(ret > 0);
 
         len += ret;
-        assert(len < sizeof(buf));
+        ASSERT(len < sizeof(buf));
     }
 
     ret = snprintf(buf + len, sizeof(buf) - len, "Proxy-Connection: %s\r\n\r\n",
                    "Keep-Alive");
-    assert(ret > 0);
+    ASSERT(ret > 0);
 
     len += ret;
-    assert(len < sizeof(buf));
+    ASSERT(len < sizeof(buf));
 
     snprintf((char *)str, sizeof(str), "%hu", proxy->port);
     mbedtls_net_init(ctx);
@@ -139,6 +139,6 @@ err:
 }
 
 void http_proxy_free(struct http_proxy *proxy) {
-    assert(proxy);
+    ASSERT(proxy);
     free(proxy);
 }

@@ -10,7 +10,6 @@
 
 #include <string.h>
 #include <stdlib.h>
-#include <time.h>
 
 #include "debug.h"
 
@@ -21,7 +20,7 @@
 #endif /* _WIN32 */
 
 void xsleep(int seconds) {
-    assert(seconds > 0);
+    ASSERT(seconds > 0);
 #ifdef _WIN32
     Sleep(seconds * 1000);
 #else  /* No defined _WIN32 */
@@ -32,7 +31,7 @@ void xsleep(int seconds) {
 const char *xbasename(const char *str) {
     const char *s = NULL;
 
-    assert(str);
+    ASSERT(str);
 
     while (*str) {
         if (*str++ == PATH_SEPARATOR) {
@@ -42,21 +41,11 @@ const char *xbasename(const char *str) {
     return s;
 }
 
-int xrand(void) {
-    static int sranded = 0;
-
-    if (!sranded) {
-        srand((unsigned int)time(NULL));
-        sranded = 1;
-    }
-    return rand();
-}
-
 char *xstrdup(const char *str) {
     char *ptr, *s;
     size_t n = 0;
 
-    assert(str);
+    ASSERT(str);
 
     while ('\0' != str[n++]) {
     }

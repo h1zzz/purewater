@@ -59,8 +59,8 @@ struct socks5_client *socks5_client_new(const char *host, uint16_t port,
                                         const char *user, const char *passwd) {
     struct socks5_client *client;
 
-    assert(host);
-    assert(port);
+    ASSERT(host);
+    ASSERT(port);
 
     client = calloc(1, sizeof(struct socks5_client));
     if (!client) {
@@ -68,7 +68,7 @@ struct socks5_client *socks5_client_new(const char *host, uint16_t port,
         return NULL;
     }
 
-    assert(strlen(host) < sizeof(client->host));
+    ASSERT(strlen(host) < sizeof(client->host));
 
     memcpy(client->host, host, strlen(host));
     client->port = port;
@@ -77,8 +77,8 @@ struct socks5_client *socks5_client_new(const char *host, uint16_t port,
         return client;
     }
 
-    assert(strlen(user) < sizeof(client->user));
-    assert(strlen(passwd) < sizeof(client->passwd));
+    ASSERT(strlen(user) < sizeof(client->user));
+    ASSERT(strlen(passwd) < sizeof(client->passwd));
 
     memcpy(client->user, user, strlen(user));
     memcpy(client->passwd, passwd, strlen(passwd));
@@ -124,7 +124,7 @@ static int socks5_client_negotiate_auth_method(mbedtls_net_context *ctx,
      * | 1  |   1    |
      * +----+--------+
      */
-    assert(ret >= 2);
+    ASSERT(ret >= 2);
 
     /* version */
     if (buf[0] != SOCKS5_VERSION) {
@@ -181,7 +181,7 @@ static int socks5_client_username_password_auth(struct socks5_client *client,
      * | 1  |   1    |
      * +----+--------+
      */
-    assert(ret >= 2);
+    ASSERT(ret >= 2);
 
     /* version */
     if (buf[0] != SOCKS5_VERSION) {
@@ -220,24 +220,24 @@ static int socks5_client_request(mbedtls_net_context *ctx, uint8_t cmd,
     buf[len++] = atyp;
 
     switch (atyp) {
-        case SOCKS5_IPV4_ADDRESS:
-            ret = inet_pton(AF_INET, addr, buf + len);
-            if (ret <= 0) {
-                DBGF("inet_pton error: %s", addr);
-                return -1;
-            }
-            len += 4; /* IPv4 address 32bit */
-            break;
-        case SOCKS5_DOMAINNAME:
-            ret = (int)strlen(addr);
-            assert(ret < 256);
-            buf[len++] = (uint8_t)ret; /* domain length */
-            memcpy(buf + len, addr, ret);
-            len += ret;
-            break;
-        default:
-            DBG("unsupported address type");
+    case SOCKS5_IPV4_ADDRESS:
+        ret = inet_pton(AF_INET, addr, buf + len);
+        if (ret <= 0) {
+            DBGF("inet_pton error: %s", addr);
             return -1;
+        }
+        len += 4; /* IPv4 address 32bit */
+        break;
+    case SOCKS5_DOMAINNAME:
+        ret = (int)strlen(addr);
+        ASSERT(ret < 256);
+        buf[len++] = (uint8_t)ret; /* domain length */
+        memcpy(buf + len, addr, ret);
+        len += ret;
+        break;
+    default:
+        DBG("unsupported address type");
+        return -1;
     }
 
     *((uint16_t *)(buf + len)) = htons(port);
@@ -255,7 +255,7 @@ static int socks5_client_request(mbedtls_net_context *ctx, uint8_t cmd,
         return -1;
     }
 
-    assert(ret >= 2);
+    ASSERT(ret >= 2);
 
     /* version */
     if (buf[0] != SOCKS5_VERSION) {
@@ -273,10 +273,10 @@ int socks5_client_connect(struct socks5_client *client,
     int ret;
     char sport[8], ip[4];
 
-    assert(client);
-    assert(ctx);
-    assert(host);
-    assert(port);
+    ASSERT(client);
+    ASSERT(ctx);
+    ASSERT(host);
+    ASSERT(port);
 
     snprintf(sport, sizeof(sport), "%hu", client->port);
     mbedtls_net_init(ctx);
@@ -301,18 +301,18 @@ int socks5_client_connect(struct socks5_client *client,
     }
 
     switch (ret) {
-        case SOCKS5_NO_AUTHENTICATION_REQUIRED:
-            break;
-        case SOCKS5_USERNAME_PASSWORD:
-            ret = socks5_client_username_password_auth(client, ctx);
-            if (ret == -1) {
-                DBG("username password auth fail");
-                goto err;
-            }
-            break;
-        default:
-            DBGF("unsupported authentication method: %d", ret);
+    case SOCKS5_NO_AUTHENTICATION_REQUIRED:
+        break;
+    case SOCKS5_USERNAME_PASSWORD:
+        ret = socks5_client_username_password_auth(client, ctx);
+        if (ret == -1) {
+            DBG("username password auth fail");
             goto err;
+        }
+        break;
+    default:
+        DBGF("unsupported authentication method: %d", ret);
+        goto err;
     }
 
     if (inet_pton(AF_INET, host, ip) == 1) {
@@ -335,6 +335,6 @@ err:
 }
 
 void socks5_client_free(struct socks5_client *client) {
-    assert(client);
+    ASSERT(client);
     free(client);
 }
