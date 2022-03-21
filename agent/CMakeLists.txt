@@ -18,6 +18,7 @@ include_directories(
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR}/mbedtls/include
   ${CMAKE_CURRENT_SOURCE_DIR}/zlib
+  ${CMAKE_CURRENT_BINARY_DIR}/zlib
 )
 
 if(MSVC)
@@ -50,7 +51,7 @@ set(
   src/util.c
 )
 
-set(LIBS mbedtls zlib)
+set(LIBS mbedtls zlibstatic)
 
 if(MSVC OR MINGW)
   list(APPEND LIBS ws2_32)
