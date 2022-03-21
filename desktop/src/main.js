@@ -4,7 +4,7 @@
 
 const { app, BrowserWindow } = require('electron');
 
-const createWindow = function() {
+function createWindow() {
   const win = new BrowserWindow({
     width: 800,
     height: 500,
@@ -12,12 +12,13 @@ const createWindow = function() {
 }
 
 app.on('ready', function() {
-  createWindow()
-  app.on('activate', function() {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
-    }
-  });
+  createWindow();
+});
+
+app.on('activate', function() {
+  if (BrowserWindow.getAllWindows().length === 0) {
+    createWindow();
+  }
 });
 
 app.on('window-all-closed', function() {
