@@ -7,7 +7,12 @@ $ go run .
 
 ```shell
 $ docker build -t cc .
-$ docker run -td -P --name cc cc
+$ docker run -td --name cc --network host -v /etc/localtime:/etc/localtime:ro \
+    -e LISTEN_ADDR="0.0.0.0:443" \
+    -e MYSQL_ADDR="mysql:3306" \
+    -e MYSQL_DATABASE="mysql:3306" \
+    -e MYSQL_USER="user" \
+    -e MYSQL_PASSWORD="password" cc
 ```
 
 ```

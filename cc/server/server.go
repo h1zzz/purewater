@@ -1,3 +1,7 @@
-// MIT License Copyright (c) 2021, h1zzz
+// MIT License Copyright (c) 2022, h1zzz
 
 package server
+
+// Server ...
+type Server struct {
+}

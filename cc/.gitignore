@@ -15,3 +15,5 @@
 # vendor/
 
 cc
+cert.pem
+key.pem

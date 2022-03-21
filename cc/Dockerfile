@@ -19,6 +19,4 @@ COPY --from=builder /work/cc /app/cc
 COPY --from=builder /work/cert.pem /app/cert.pem
 COPY --from=builder /work/key.pem /app/key.pem
 
-EXPOSE 443 22
-
 ENTRYPOINT [ "/app/cc" ]

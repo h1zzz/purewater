@@ -3,7 +3,7 @@
 version: "3.9"
 services:
   mysql:
-    container_name: mysql
+    container_name: purewater_mysql
     image: mysql
     command:
       --default-authentication-plugin=mysql_native_password
@@ -18,37 +18,22 @@ services:
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - ./db.sql:/docker-entrypoint-initdb.d/db.sql:ro
-      - ${DATA_DIR}/mysql:/var/lib/mysql
-    networks:
-      - backend
 
   cc:
-    container_name: cc
+    container_name: purewater_cc
     build: .
     image: cc
     restart: always
     tty: true
     depends_on:
       - mysql
-    ports:
-      - "443:443"
-      - "2222:22"
     environment:
-      SSH_ADDR: ${SSH_ADDR}
-      SSH_USER: ${SSH_USER} # Admin username
-      SSH_PASSWORD: ${SSH_PASSWORD} # Admin user password
+      LISTEN_ADDR: ${LISTEN_ADDR}
       MYSQL_ADDR: ${MYSQL_ADDR}
       MYSQL_DATABASE: ${MYSQL_DATABASE}
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     volumes:
       - /etc/localtime:/etc/localtime:ro
-      # - /root/.ssh/authorized_keys:/root/.ssh/authorized_keys:ro
     network_mode: host
-    networks:
-      - backend
 
-networks:
-  backend:
-    name: backend
-    driver: bridge

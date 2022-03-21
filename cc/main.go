@@ -3,21 +3,16 @@
 package main
 
 import (
-	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
-	"path"
-	"time"
 
-	"github.com/gliderlabs/ssh"
-	"github.com/h1zzz/purewater/cc/admin"
-	"github.com/h1zzz/purewater/cc/util"
+	"github.com/gin-gonic/gin"
+	"github.com/h1zzz/purewater/cc/api"
 	"github.com/joho/godotenv"
 )
 
 const (
-	sshWelcome = "" +
+	welcomeText = "" +
 		"Welcome to Purewater <https://github.com/h1zzz/purewater>\n" +
 		"  ______                             _\n" +
 		"  | ___ \\                           | |\n" +
@@ -32,75 +27,22 @@ func init() {
 	if err := godotenv.Load(); err != nil && !os.IsNotExist(err) {
 		log.Fatal(err)
 	}
+	gin.SetMode(gin.ReleaseMode)
 }
 
 func main() {
+	log.Print(welcomeText)
 
-	var (
-		sshAddr   = os.Getenv("SSH_ADDR")
-		sshUser   = os.Getenv("SSH_USER")
-		sshPasswd = os.Getenv("SSH_PASSWORD")
-	)
+	// err := database.InitDatabase(os.Getenv("MYSQL_USER"), os.Getenv("MYSQL_PASSWORD"), os.Getenv("MYSQL_ADDR"),
+	//     os.Getenv("MYSQL_DATABASE"))
+	// if err != nil {
+	//     log.Fatal(err)
+	// }
 
-	options := []ssh.Option{ssh.HostKeyFile("key.pem")}
+	router := gin.Default()
+	api.Register(router.Group("/api"))
 
-	// If the user name and password are not empty, then add the user name and password authentication method
-	if sshUser != "" && sshPasswd != "" {
-		options = append(options, ssh.PasswordAuth(func(ctx ssh.Context, password string) bool {
-			if ctx.User() == sshUser && password == sshPasswd {
-				return true
-			}
-			return false
-		}))
-	}
+	// log.Fatal(router.RunTLS(os.Getenv("LISTEN_ADDR"), "cert.pem", "key.pem"))
 
-	// If there is a public key, add a way to log in with the public key
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		log.Panic(err)
-	}
-
-	keyPath := path.Join(homeDir, ".ssh/authorized_keys")
-	exists, err := util.PathExists(keyPath)
-	if err != nil {
-		log.Panic(err)
-	}
-
-	if exists {
-		options = append(options, ssh.PublicKeyAuth(func(ctx ssh.Context, key ssh.PublicKey) bool {
-			data, err := ioutil.ReadFile(keyPath)
-			if err != nil {
-				log.Print(err)
-				return false
-			}
-			// TODO: verify username
-			out, _, _, _, err := ssh.ParseAuthorizedKey(data)
-			if err != nil {
-				log.Print(err)
-				return false
-			}
-			return ssh.KeysEqual(key, out)
-		}))
-	}
-
-	log.Printf("start ssh server: %s", sshAddr)
-
-	log.Fatal(ssh.ListenAndServe(sshAddr, func(session ssh.Session) {
-		defer session.Close()
-
-		// Echo welcome message
-		session.Write([]byte(sshWelcome + fmt.Sprintf("%s login from %s.\n",
-			time.Now().Format("Mon Jan 2 15:04:05 MST 2006"), session.RemoteAddr().String())))
-
-		admin, err := admin.New(session.User(), session)
-		if err != nil {
-			log.Print(err)
-			return
-		}
-		defer admin.Close()
-
-		if err := admin.Handler(); err != nil {
-			log.Print(err)
-		}
-	}, options...))
+	log.Fatal(router.Run(os.Getenv("LISTEN_ADDR")))
 }
