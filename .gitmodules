@@ -1,6 +1,6 @@
 [submodule "agent/mbedtls"]
 	path = agent/mbedtls
 	url = https://github.com/ARMmbed/mbedtls.git
-[submodule "agent/zlib-ng"]
-	path = agent/zlib-ng
-	url = https://github.com/zlib-ng/zlib-ng
+[submodule "agent/zlib"]
+	path = agent/zlib
+	url = https://github.com/madler/zlib
