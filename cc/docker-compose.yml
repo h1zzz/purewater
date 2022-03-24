@@ -3,7 +3,7 @@
 version: "3.9"
 services:
   mysql:
-    container_name: purewater_mysql
+    container_name: purewater-mysql
     image: mysql
     command:
       --default-authentication-plugin=mysql_native_password
@@ -20,7 +20,7 @@ services:
       - ./db.sql:/docker-entrypoint-initdb.d/db.sql:ro
 
   cc:
-    container_name: purewater_cc
+    container_name: purewater-cc
     build: .
     image: cc
     restart: always

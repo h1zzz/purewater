@@ -170,7 +170,7 @@ static int socks5_client_username_password_auth(struct socks5_client *client,
 
     ret = net_recv(ctx, buf, sizeof(buf));
     if (ret <= 0) {
-        DBG("net_recv error");
+        DBG("net_recv auth response error");
         return -1;
     }
 
@@ -250,7 +250,7 @@ static int socks5_client_request(net_context *sock, uint8_t cmd, uint8_t atyp,
 
     ret = net_recv(sock, (unsigned char *)buf, sizeof(buf));
     if (ret <= 0) {
-        DBG("net_recv error");
+        DBG("net_recv response error");
         return -1;
     }
 

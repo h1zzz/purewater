@@ -133,7 +133,7 @@ again:
 #endif /* _WIN32 */
             goto again;
         }
-        DBGERR("send error");
+        DBGERR("recv error");
         return -1;
     }
 
