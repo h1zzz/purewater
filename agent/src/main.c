@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <string.h>
 
 #include "debug.h"
 #include "util.h"
@@ -24,7 +25,6 @@ struct options opts = {
 
 static void readopts(int argc, char *argv[]) {
     opts.program = xbasename(*argv);
-
     argc--;
     argv++;
 }
@@ -33,10 +33,6 @@ static void readopts(int argc, char *argv[]) {
 
 int main(int argc, char *argv[]) {
     readopts(argc, argv);
-
     srand((unsigned int)time(NULL));
-
-    DBGF("%s", opts.program);
-
     return 0;
 }

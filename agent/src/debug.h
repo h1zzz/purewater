@@ -30,7 +30,12 @@
     fprintf(stdout, "\033[1;90m[%s:%d] \033[0m" fmt "\n", xbasename(__FILE__), \
             __LINE__, __VA_ARGS__);
 
-#define DBGERR(str) perror(str)
+#define DBGERR(str)                                                       \
+    do {                                                                  \
+        fprintf(stderr, "\033[1;90m[%s:%d] \033[0m", xbasename(__FILE__), \
+                __LINE__);                                                \
+        perror(str);                                                      \
+    } while (0)
 
 #endif /* NDEBUG */
 

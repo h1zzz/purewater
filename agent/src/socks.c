@@ -86,7 +86,7 @@ struct socks5_client *socks5_client_new(const char *host, uint16_t port,
     return client;
 }
 
-static int socks5_client_negotiate_auth_method(mbedtls_net_context *ctx,
+static int socks5_client_negotiate_auth_method(net_context *ctx,
                                                const uint8_t *methods,
                                                uint8_t nmethods) {
     unsigned char buf[512];
@@ -105,15 +105,15 @@ static int socks5_client_negotiate_auth_method(mbedtls_net_context *ctx,
     memcpy(buf + len, methods, nmethods);
     len += nmethods;
 
-    ret = mbedtls_net_send(ctx, (unsigned char *)buf, len);
+    ret = net_send(ctx, buf, len);
     if (ret <= 0) {
-        DBG("mbedtls_net_send error");
+        DBG("net_send error");
         return -1;
     }
 
-    ret = mbedtls_net_recv(ctx, (unsigned char *)buf, sizeof(buf));
+    ret = net_recv(ctx, buf, sizeof(buf));
     if (ret <= 0) {
-        DBG("mbedtls_net_recv error");
+        DBG("net_recv error");
         return -1;
     }
 
@@ -136,7 +136,7 @@ static int socks5_client_negotiate_auth_method(mbedtls_net_context *ctx,
 }
 
 static int socks5_client_username_password_auth(struct socks5_client *client,
-                                                mbedtls_net_context *ctx) {
+                                                net_context *ctx) {
     unsigned char buf[1024];
     int ret, len = 0;
 
@@ -162,15 +162,15 @@ static int socks5_client_username_password_auth(struct socks5_client *client,
     memcpy(buf + len, client->passwd, ret); /* passwd */
     len += ret;
 
-    ret = mbedtls_net_send(ctx, buf, len);
+    ret = net_send(ctx, buf, len);
     if (ret <= 0) {
-        DBG("mbedtls_net_send error");
+        DBG("net_send error");
         return -1;
     }
 
-    ret = mbedtls_net_recv(ctx, buf, sizeof(buf));
+    ret = net_recv(ctx, buf, sizeof(buf));
     if (ret <= 0) {
-        DBG("mbedtls_net_recv error");
+        DBG("net_recv error");
         return -1;
     }
 
@@ -200,9 +200,8 @@ static int socks5_client_username_password_auth(struct socks5_client *client,
     return 0;
 }
 
-static int socks5_client_request(mbedtls_net_context *ctx, uint8_t cmd,
-                                 uint8_t atyp, const char *addr,
-                                 uint16_t port) {
+static int socks5_client_request(net_context *sock, uint8_t cmd, uint8_t atyp,
+                                 const char *addr, uint16_t port) {
     unsigned char buf[512] = {0};
     int ret, len = 0;
 
@@ -243,15 +242,15 @@ static int socks5_client_request(mbedtls_net_context *ctx, uint8_t cmd,
     *((uint16_t *)(buf + len)) = htons(port);
     len += 2;
 
-    ret = mbedtls_net_send(ctx, (unsigned char *)buf, len);
+    ret = net_send(sock, (unsigned char *)buf, len);
     if (ret <= 0) {
-        DBG("mbedtls_net_send error");
+        DBG("net_send error");
         return -1;
     }
 
-    ret = mbedtls_net_recv(ctx, (unsigned char *)buf, sizeof(buf));
+    ret = net_recv(sock, (unsigned char *)buf, sizeof(buf));
     if (ret <= 0) {
-        DBG("mbedtls_net_recv error");
+        DBG("net_recv error");
         return -1;
     }
 
@@ -266,24 +265,22 @@ static int socks5_client_request(mbedtls_net_context *ctx, uint8_t cmd,
     return buf[1];
 }
 
-int socks5_client_connect(struct socks5_client *client,
-                          mbedtls_net_context *ctx, const char *host,
-                          uint16_t port) {
+int socks5_client_connect(struct socks5_client *client, net_context *ctx,
+                          const char *host, uint16_t port) {
     uint8_t atyp, nmethods, methods[255];
     int ret;
-    char sport[8], ip[4];
+    char ip[4];
 
     ASSERT(client);
     ASSERT(ctx);
     ASSERT(host);
     ASSERT(port);
 
-    snprintf(sport, sizeof(sport), "%hu", client->port);
-    mbedtls_net_init(ctx);
+    net_init(ctx);
 
-    ret = mbedtls_net_connect(ctx, client->host, sport, MBEDTLS_NET_PROTO_TCP);
+    ret = net_connect(ctx, client->host, client->port, NET_TCP);
     if (ret != 0) {
-        DBG("mbedtls_net_connect error");
+        DBG("net_connect error");
         goto err;
     }
 
@@ -330,7 +327,7 @@ int socks5_client_connect(struct socks5_client *client,
     return 0;
 
 err:
-    mbedtls_net_free(ctx);
+    net_free(ctx);
     return -1;
 }
 

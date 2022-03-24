@@ -42,7 +42,11 @@ add_definitions(-DMBEDTLS_CONFIG_FILE="config.h")
 set(
   SOURCES
   src/debug.h
+  src/dns.h
+  src/dns.c
   src/main.c
+  src/net.h
+  src/net.c
   src/proxy.h
   src/proxy.c
   src/socks.h
@@ -54,7 +58,7 @@ set(
 set(LIBS mbedtls zlibstatic)
 
 if(MSVC OR MINGW)
-  list(APPEND LIBS ws2_32)
+  list(APPEND LIBS ws2_32 iphlpapi)
 endif()
 
 add_executable(agent ${SOURCES})

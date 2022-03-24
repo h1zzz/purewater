@@ -52,7 +52,7 @@ char *xstrdup(const char *str) {
 
     ptr = calloc(1, n);
     if (!ptr) {
-        DBG("calloc error");
+        DBGERR("calloc error");
         return NULL;
     }
 

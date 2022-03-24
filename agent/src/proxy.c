@@ -54,7 +54,7 @@ struct http_proxy *http_proxy_new(const char *host, uint16_t port,
  * Proxy-Connection: Keep-Alive
  */
 
-int http_proxy_connect(struct http_proxy *proxy, mbedtls_net_context *ctx,
+int http_proxy_connect(struct http_proxy *proxy, net_context *ctx,
                        const char *host, uint16_t port) {
     unsigned char base64[512] = {0}, str[256] = {0};
     char buf[1024] = {0};
@@ -102,27 +102,25 @@ int http_proxy_connect(struct http_proxy *proxy, mbedtls_net_context *ctx,
     len += ret;
     ASSERT(len < sizeof(buf));
 
-    snprintf((char *)str, sizeof(str), "%hu", proxy->port);
-    mbedtls_net_init(ctx);
+    net_init(ctx);
 
-    DBGF("%s:%s", proxy->host, str);
+    DBGF("%s:%hd", proxy->host, proxy->port);
 
-    ret = mbedtls_net_connect(ctx, proxy->host, (char *)str,
-                              MBEDTLS_NET_PROTO_TCP);
+    ret = net_connect(ctx, proxy->host, proxy->port, NET_TCP);
     if (ret != 0) {
-        DBG("mbedtls_net_connect error");
+        DBG("net_connect error");
         goto err;
     }
 
-    ret = mbedtls_net_send(ctx, (unsigned char *)buf, len);
+    ret = net_send(ctx, (unsigned char *)buf, len);
     if (ret <= 0) {
-        DBG("mbedtls_net_send error");
+        DBG("net_send error");
         goto err;
     }
 
-    ret = mbedtls_net_recv(ctx, (unsigned char *)buf, sizeof(buf));
+    ret = net_recv(ctx, (unsigned char *)buf, sizeof(buf));
     if (ret <= 0) {
-        DBG("mbedtls_net_recv error");
+        DBG("net_recv error");
         goto err;
     }
 
@@ -134,7 +132,7 @@ int http_proxy_connect(struct http_proxy *proxy, mbedtls_net_context *ctx,
     return 0;
 
 err:
-    mbedtls_net_free(ctx);
+    net_free(ctx);
     return -1;
 }
 
