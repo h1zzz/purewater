@@ -6,6 +6,7 @@
 #include <string.h>
 
 #include "debug.h"
+#include "dns.h"
 #include "util.h"
 
 struct options {
@@ -32,7 +33,16 @@ static void readopts(int argc, char *argv[]) {
 /* static void usage(void) {} */
 
 int main(int argc, char *argv[]) {
+    struct dns_node *node;
+
     readopts(argc, argv);
     srand((unsigned int)time(NULL));
+
+    node = dns_query_ret("google.com", DNS_A);
+
+    for (; node; node = node->next) {
+        DBGF("%s", node->data);
+    }
+
     return 0;
 }

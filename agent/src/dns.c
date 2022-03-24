@@ -60,6 +60,7 @@ static void dns_format_name(char *name);
 static int dns_read_name(char *data, char *ptr, char *name, size_t size);
 static int check_is_ipv4(const char *ip);
 static int dns_add_local_ns(dns_context *ctx);
+static int dns_parse_answer(struct dns_node **res, char *data, int n);
 
 void dns_init(dns_context *ctx) {
     ctx->ns_head = NULL;
@@ -211,16 +212,100 @@ static void dns_ns_free(struct dns_ns *ns) {
     free(ns);
 }
 
+static int dns_parse_answer(struct dns_node **res, char *data, int n) {
+    uint16_t i, an_count, type, class, rd_length;
+    struct dns_header *header;
+    struct dns_rrs *answer;
+    struct dns_node *dns_node;
+    int pos, ret;
+
+    pos = sizeof(struct dns_header);
+
+    ASSERT(pos < n);
+
+    header = (struct dns_header *)data;
+    an_count = ntohs(header->an_count);
+
+    ret = dns_read_name(data, data + pos, NULL, 0);
+
+    ASSERT(ret < n - pos);
+
+    pos += ret;
+
+    ASSERT(sizeof(struct dns_question) <= (size_t)n - pos);
+
+    pos += sizeof(struct dns_question);
+
+    for (i = 0; i < an_count; i++) {
+        ret = dns_read_name(data, data + pos, NULL, 0);
+        if (ret >= n - pos) {
+            DBG("dns_read_name error");
+            return -1;
+        }
+
+        pos += ret;
+        ASSERT(sizeof(struct dns_rrs) < (size_t)n - pos);
+
+        answer = (struct dns_rrs *)(data + pos);
+        pos += sizeof(struct dns_rrs);
+
+        rd_length = ntohs(answer->rd_length);
+        ASSERT(rd_length <= n - pos);
+
+        type = ntohs(answer->type);
+        class = ntohs(answer->class);
+
+        if (class != CLASS_IN) {
+            DBGF("nosuppoted class %d.", class);
+            return 0;
+        }
+
+        dns_node = calloc(1, sizeof(struct dns_node));
+        if (!dns_node) {
+            DBG("calloc error");
+            return -1;
+        }
+
+        switch (type) {
+        case DNS_A:
+            if (!inet_ntop(AF_INET, data + pos, dns_node->data,
+                           sizeof(dns_node->data))) {
+                DBG("inet_ntop error");
+                free(dns_node);
+                dns_node = NULL;
+            }
+            dns_node->data_len = strlen(dns_node->data);
+            break;
+        case DNS_TXT:
+            dns_node->data_len = data[pos];
+            memcpy(dns_node->data, data + pos + 1, dns_node->data_len);
+            break;
+        default:
+            /* DBGF("nosupported type: %d", type); */
+            free(dns_node);
+            dns_node = NULL;
+            break;
+        }
+
+        if (dns_node) {
+            dns_node->next = *res;
+            *res = dns_node;
+        }
+
+        pos += rd_length;
+    }
+
+    return 0;
+}
+
 static struct dns_node *_dns_query(net_context *ctx, const char *domain,
                                    int type) {
-    struct dns_node *dns_node = NULL, *dns_node_ptr;
-    uint16_t i, an_count, _type, class, rd_length;
-    struct dns_rrs *answer;
+    struct dns_node *dns_node = NULL;
     struct dns_header *header;
     struct dns_question *question;
     char buf[10240] = {0}, *qname;
     size_t n;
-    int ret, pos;
+    int ret;
 
     /* dns header. */
     header = (struct dns_header *)buf;
@@ -265,101 +350,10 @@ static struct dns_node *_dns_query(net_context *ctx, const char *domain,
         return NULL;
     }
 
-    n = (size_t)ret;
-
-    pos = sizeof(struct dns_header);
-    if ((size_t)pos >= n) {
-        DBG("invalid message");
-        return NULL;
+    if (dns_parse_answer(&dns_node, buf, ret) == -1) {
+        DBG("dns_parse_answer error");
     }
 
-    header = (struct dns_header *)buf;
-    an_count = ntohs(header->an_count);
-
-    ret = dns_read_name(buf, buf + pos, NULL, 0);
-    if ((size_t)ret >= n - pos) {
-        DBG("invalid message");
-        return NULL;
-    }
-
-    pos += ret;
-
-    if (sizeof(struct dns_question) > (size_t)n - pos) {
-        return NULL;
-    }
-
-    pos += sizeof(struct dns_question);
-
-    for (i = 0; i < an_count; i++) {
-        ret = dns_read_name(buf, buf + pos, NULL, 0);
-        if ((size_t)ret >= n - pos) {
-            DBG("invalid message");
-            goto end;
-        }
-
-        pos += ret;
-        if (sizeof(struct dns_rrs) >= (size_t)n - pos) {
-            DBG("invalid message");
-            goto end;
-        }
-
-        answer = (struct dns_rrs *)(buf + pos);
-        pos += sizeof(struct dns_rrs);
-
-        rd_length = ntohs(answer->rd_length);
-        if (rd_length > n - pos) {
-            DBG("invalid message");
-            goto end;
-        }
-
-        _type = ntohs(answer->type);
-        class = ntohs(answer->class);
-
-        if (class != CLASS_IN) {
-            DBGF("nosuppoted class %d.", class);
-            continue;
-        }
-
-        dns_node_ptr = calloc(1, sizeof(struct dns_node));
-        if (!dns_node_ptr) {
-            DBGERR("calloc error");
-            goto end;
-        }
-
-        dns_node_ptr->type = _type;
-
-        ASSERT(rd_length <= sizeof(dns_node_ptr->data));
-
-        switch (_type) {
-        case DNS_A:
-            if (!inet_ntop(AF_INET, buf + pos, dns_node_ptr->data,
-                           sizeof(dns_node_ptr->data))) {
-                DBGERR("inet_ntop error");
-                free(dns_node_ptr);
-                dns_node_ptr = NULL;
-            }
-            dns_node_ptr->data_len = strlen(dns_node_ptr->data);
-            break;
-        case DNS_TXT:
-            dns_node_ptr->data_len = buf[pos];
-            memcpy(dns_node_ptr->data, buf + pos + 1, dns_node_ptr->data_len);
-            break;
-        default:
-            /* DBGF("nosupported type: %d", _type); */
-            free(dns_node_ptr);
-            dns_node_ptr = NULL;
-            break;
-        }
-
-        if (dns_node_ptr) {
-            dns_node_ptr->next = dns_node;
-            dns_node = dns_node_ptr;
-        }
-
-        pos += rd_length;
-    }
-
-end:
     return dns_node;
 }
 
@@ -500,7 +494,7 @@ static int dns_add_local_ns(dns_context *ctx) {
             ipAddr = ipAddr->Next;
             continue;
         }
-        if (dns_add_ns(dns, ipAddr->IpAddress.String, 53) == -1) {
+        if (dns_add_ns(ctx, ipAddr->IpAddress.String, 53) == -1) {
             DBG("dns_add_dns_server error");
             goto err;
         }

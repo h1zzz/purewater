@@ -53,7 +53,7 @@ void net_init(net_context *ctx) {
 int net_connect(net_context *ctx, const char *host, uint16_t port, int proto) {
     struct dns_node *dns_node, *curr;
     struct sockaddr_in addr;
-    int ret;
+    int ret = -1;
 
     ASSERT(ctx && ctx->fd == INVALID_SOCKET);
     ASSERT(host);
