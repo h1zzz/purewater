@@ -1,3 +1,0 @@
-# Dashboard
-
-**CUI client**
