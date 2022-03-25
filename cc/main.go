@@ -24,10 +24,12 @@ const (
 )
 
 func init() {
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
+	gin.SetMode(gin.ReleaseMode)
+
 	if err := godotenv.Load(); err != nil && !os.IsNotExist(err) {
 		log.Fatal(err)
 	}
-	gin.SetMode(gin.ReleaseMode)
 }
 
 func main() {

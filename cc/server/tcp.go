@@ -3,32 +3,32 @@
 package server
 
 import (
-	"fmt"
 	"log"
 	"net"
 )
 
-func TCPListen(port int) (net.Listener, error) {
-	l, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", port))
+func (s *Server) TCPListen() (err error) {
+	s.TCPListener, err = net.ListenTCP("tcp", &net.TCPAddr{IP: net.IPv4(127, 0, 0, 1), Port: s.Port})
 	if err != nil {
 		log.Print(err)
-		return nil, err
+		return err
 	}
-	go func(l net.Listener) {
-		defer l.Close()
+	go func(s *Server) {
+		defer s.TCPListener.Close()
 		for {
-			conn, err := l.Accept()
+			conn, err := s.TCPListener.Accept()
 			if err != nil {
 				log.Print(err)
+				s.setOffline()
 				break
 			}
 			go TCPHandle(conn)
 		}
-	}(l)
-	return l, nil
+	}(s)
+	return
 }
 
 func TCPHandle(conn net.Conn) {
 	defer conn.Close()
-	log.Printf("recvfrom: %s", conn.RemoteAddr().String())
+	log.Printf("TCP Handle Recvfrom: %s", conn.RemoteAddr().String())
 }

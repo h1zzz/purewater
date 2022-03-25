@@ -39,12 +39,12 @@ func ServerStart(c *gin.Context) {
 	}
 
 	if params.Port <= 0 || params.Port >= 65535 {
-		APIReply(c, http.StatusBadRequest, -1, fmt.Sprintf("Invalid port: %d", params.Port), nil)
+		APIReply(c, http.StatusBadRequest, -1, fmt.Sprintf("invalid port: %d", params.Port), nil)
 		return
 	}
 
 	if _, ok := ServersMap.Load(params.Port); ok {
-		APIReply(c, http.StatusBadRequest, -1, fmt.Sprintf("Port occupation: %d", params.Port), nil)
+		APIReply(c, http.StatusBadRequest, -1, fmt.Sprintf("port occupation: %d", params.Port), nil)
 		return
 	}
 
@@ -70,7 +70,7 @@ func ServerStop(c *gin.Context) {
 	}
 
 	if params.Port <= 0 || params.Port >= 65535 {
-		APIReply(c, http.StatusBadRequest, -1, fmt.Sprintf("Invalid port: %d", params.Port), nil)
+		APIReply(c, http.StatusBadRequest, -1, fmt.Sprintf("invalid port: %d", params.Port), nil)
 		return
 	}
 
@@ -81,7 +81,7 @@ func ServerStop(c *gin.Context) {
 		return
 	}
 
-	APIReply(c, http.StatusBadRequest, -1, fmt.Sprintf("Port not in use: %d", params.Port), nil)
+	APIReply(c, http.StatusBadRequest, -1, fmt.Sprintf("listener does not exist, %d", params.Port), nil)
 }
 
 func ServerInfo(c *gin.Context) {
@@ -94,7 +94,7 @@ func ServerInfo(c *gin.Context) {
 	}
 
 	if params.Port <= 0 || params.Port >= 65535 {
-		APIReply(c, http.StatusBadRequest, -1, fmt.Sprintf("Invalid port: %d", params.Port), nil)
+		APIReply(c, http.StatusBadRequest, -1, fmt.Sprintf("invalid port: %d", params.Port), nil)
 		return
 	}
 
@@ -105,7 +105,7 @@ func ServerInfo(c *gin.Context) {
 		return
 	}
 
-	APIReply(c, http.StatusBadRequest, -1, fmt.Sprintf("Port not in use: %d", params.Port), nil)
+	APIReply(c, http.StatusBadRequest, -1, fmt.Sprintf("port not in use: %d", params.Port), nil)
 }
 
 func ServerList(c *gin.Context) {
