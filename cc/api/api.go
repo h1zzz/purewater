@@ -4,10 +4,10 @@ package api
 
 import "github.com/gin-gonic/gin"
 
-// ApiBaseResponse ...
-type ApiBaseResponse struct {
-	Code    int         `json:"code"`
-	Err     string      `json:"err"`
+// APIBaseResponse ...
+type APIBaseResponse struct {
+	Ret     int         `json:"ret"`
+	Msg     string      `json:"msg"`
 	Content interface{} `json:"content"`
 }
 
@@ -16,11 +16,6 @@ func Register(r *gin.RouterGroup) {
 	RegisterServer(r.Group("/server"))
 }
 
-// ApiReply ...
-func ApiReply(c *gin.Context, httpStatus, code int, err string, content interface{}) {
-	c.JSON(httpStatus, ApiBaseResponse{
-		Code:    code,
-		Err:     err,
-		Content: content,
-	})
+func APIReply(c *gin.Context, httpStatus, ret int, err string, content interface{}) {
+	c.JSON(httpStatus, APIBaseResponse{Ret: ret, Msg: err, Content: content})
 }

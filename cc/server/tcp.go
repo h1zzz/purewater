@@ -8,11 +8,11 @@ import (
 	"net"
 )
 
-func tcpListen(port int) error {
+func TCPListen(port int) (net.Listener, error) {
 	l, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", port))
 	if err != nil {
 		log.Print(err)
-		return err
+		return nil, err
 	}
 	go func(l net.Listener) {
 		defer l.Close()
@@ -22,13 +22,13 @@ func tcpListen(port int) error {
 				log.Print(err)
 				break
 			}
-			go tcpHandle(conn)
+			go TCPHandle(conn)
 		}
 	}(l)
-	return nil
+	return l, nil
 }
 
-func tcpHandle(conn net.Conn) {
+func TCPHandle(conn net.Conn) {
 	defer conn.Close()
-	log.Print("hello world")
+	log.Printf("recvfrom: %s", conn.RemoteAddr().String())
 }

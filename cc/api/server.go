@@ -4,47 +4,115 @@ package api
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"sync"
 
 	"github.com/gin-gonic/gin"
+	"github.com/h1zzz/purewater/cc/server"
 )
 
 var (
-	serverMap = sync.Map{}
+	ServersMap sync.Map
 )
 
 // RegisterServer ...
 func RegisterServer(r *gin.RouterGroup) {
-	r.POST("/start", startServer)
-	r.POST("/stop", startServer)
+	r.POST("/start", ServerStart)
+	r.POST("/stop", ServerStop)
+	r.GET("/info", ServerInfo)
+	r.GET("/list", ServerList)
 }
 
-type startServerParam struct {
+type ServerParam struct {
 	Protocol string `json:"protocol"`
 	Port     int    `json:"port"`
 }
 
-func startServer(c *gin.Context) {
-	params := startServerParam{}
+func ServerStart(c *gin.Context) {
+	var params ServerParam
 
-	if err := c.ShouldBindJSON(params); err != nil {
-		ApiReply(c, http.StatusBadRequest, -1, err.Error(), nil)
+	if err := c.ShouldBindJSON(&params); err != nil {
+		log.Print(err)
+		APIReply(c, http.StatusBadRequest, -1, err.Error(), nil)
 		return
 	}
 
 	if params.Port <= 0 || params.Port >= 65535 {
-		ApiReply(c, http.StatusBadRequest, -1, fmt.Sprintf("Invalid port: %d", params.Port), nil)
+		APIReply(c, http.StatusBadRequest, -1, fmt.Sprintf("Invalid port: %d", params.Port), nil)
 		return
 	}
 
-	if _, ok := serverMap.Load(params.Port); ok {
-		ApiReply(c, http.StatusBadRequest, -1, fmt.Sprintf("Port occupation: %d", params.Port), nil)
+	if _, ok := ServersMap.Load(params.Port); ok {
+		APIReply(c, http.StatusBadRequest, -1, fmt.Sprintf("Port occupation: %d", params.Port), nil)
 		return
 	}
 
-	ApiReply(c, http.StatusOK, 0, "", nil)
+	l, err := server.Start(params.Protocol, params.Port)
+	if err != nil {
+		log.Print(err)
+		APIReply(c, http.StatusBadRequest, -1, err.Error(), nil)
+		return
+	}
+
+	ServersMap.Store(params.Port, l)
+
+	APIReply(c, http.StatusOK, 0, "", nil)
 }
 
-func stopServer(c *gin.Context) {
+func ServerStop(c *gin.Context) {
+	var params ServerParam
+
+	if err := c.ShouldBindJSON(&params); err != nil {
+		log.Print(err)
+		APIReply(c, http.StatusBadRequest, -1, err.Error(), nil)
+		return
+	}
+
+	if params.Port <= 0 || params.Port >= 65535 {
+		APIReply(c, http.StatusBadRequest, -1, fmt.Sprintf("Invalid port: %d", params.Port), nil)
+		return
+	}
+
+	if v, ok := ServersMap.Load(params.Port); ok {
+		v.(*server.Server).Stop()
+		ServersMap.Delete(params.Port)
+		APIReply(c, http.StatusOK, 0, "", nil)
+		return
+	}
+
+	APIReply(c, http.StatusBadRequest, -1, fmt.Sprintf("Port not in use: %d", params.Port), nil)
+}
+
+func ServerInfo(c *gin.Context) {
+	var params ServerParam
+
+	if err := c.ShouldBindJSON(&params); err != nil {
+		log.Print(err)
+		APIReply(c, http.StatusBadRequest, -1, err.Error(), nil)
+		return
+	}
+
+	if params.Port <= 0 || params.Port >= 65535 {
+		APIReply(c, http.StatusBadRequest, -1, fmt.Sprintf("Invalid port: %d", params.Port), nil)
+		return
+	}
+
+	if v, ok := ServersMap.Load(params.Port); ok {
+		s := v.(*server.Server)
+		ServersMap.Delete(params.Port)
+		APIReply(c, http.StatusOK, 0, "", gin.H{"protocol": s.Protocol, "port": s.Port})
+		return
+	}
+
+	APIReply(c, http.StatusBadRequest, -1, fmt.Sprintf("Port not in use: %d", params.Port), nil)
+}
+
+func ServerList(c *gin.Context) {
+	var list []server.Server
+	ServersMap.Range(func(k, v interface{}) bool {
+		list = append(list, *(v.(*server.Server)))
+		return true
+	})
+	APIReply(c, http.StatusOK, 0, "", list)
 }
