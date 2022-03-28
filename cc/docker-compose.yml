@@ -22,7 +22,7 @@ services:
   cc:
     container_name: purewater-cc
     build: .
-    image: cc
+    image: purewater-cc
     restart: always
     tty: true
     depends_on:

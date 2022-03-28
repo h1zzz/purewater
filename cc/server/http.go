@@ -12,7 +12,7 @@ func (s *Server) HTTPListen() (err error) {
 	mux := &http.ServeMux{}
 	mux.HandleFunc("/", HTTPHandle)
 	s.HTTPServer = &http.Server{Addr: fmt.Sprintf("127.0.0.1:%d", s.Port), Handler: mux}
-	if err != nil {
+	if err = s.HTTPServer.ListenAndServe(); err != nil {
 		log.Print(err)
 		return
 	}
