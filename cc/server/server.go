@@ -5,73 +5,82 @@ package server
 import (
 	"fmt"
 	"log"
-	"net"
-	"net/http"
-
-	"github.com/miekg/dns"
+	"sync"
 )
 
-// Server ...
+type ListenerStatus int
+type ListenerProtocol string
+
+const (
+	ListenerOffline = ListenerStatus(0)
+	ListenerOnline  = ListenerStatus(1)
+)
+
+const (
+	ListenerTCP   = ListenerProtocol("tcp")
+	ListenerUDP   = ListenerProtocol("udp")
+	ListenerHTTP  = ListenerProtocol("http")
+	ListenerHTTPS = ListenerProtocol("https")
+	ListenerDNS   = ListenerProtocol("dns")
+)
+
+type Listener interface {
+	Start(protocol ListenerProtocol, port int) (err error)
+	// Restart() error
+	Stop() error
+	Agents() *sync.Map
+	Status() ListenerStatus
+	SetOffline()
+	SetOnline()
+	Comment() string
+	SetComment(comment string)
+	Protocol() ListenerProtocol
+	Port() int
+}
+
 type Server struct {
-	Protocol    string           `json:"protocol"`
-	Port        int              `json:"port"`
-	Status      int              `json:"status"`
-	Comment     string           `json:"comment"`
-	TCPListener *net.TCPListener `json:"-"`
-	UDPConn     *net.UDPConn     `json:"-"`
-	DNSServer   *dns.Server      `json:"-"`
-	HTTPServer  *http.Server     `json:"-"`
+	listeners sync.Map
 }
 
-func (s *Server) Stop() {
-	log.Printf("Stop listener, protocol: %s, port: %d", s.Protocol, s.Port)
-	switch s.Protocol {
-	case "tcp":
-		s.TCPListener.Close()
-	case "udp":
-		s.UDPConn.Close()
-	case "http":
-		s.HTTPServer.Close()
-	case "dns":
-		s.DNSServer.Shutdown()
-	default:
+func (s *Server) Start(protocol ListenerProtocol, port int) error {
+	if v, ok := s.listeners.Load(port); ok {
+		l := v.(Listener)
+		return fmt.Errorf("The port is already in use by the listener, %s, %d, %s", l.Protocol(), l.Port(), l.Comment())
 	}
-	s.setOffline()
-}
 
-func Start(protocol string, port int) (s *Server, err error) {
-	s = &Server{Protocol: protocol, Port: port}
+	var listener Listener
 
 	switch protocol {
-	case "tcp":
-		err = s.TCPListen()
-	case "udp":
-		err = s.UDPListen()
-	case "http":
-		err = s.HTTPListen()
-	// case "https":
-	// TODO: support https
-	case "dns":
-		err = s.DNSListen()
+	case ListenerTCP:
+		listener = &TCPListener{}
+	case ListenerUDP:
+		listener = &UDPListener{}
+	case ListenerHTTP, ListenerHTTPS:
+		listener = &HTTPListener{}
+	case ListenerDNS:
+		listener = &DNSListener{}
 	default:
-		return nil, fmt.Errorf("no support protocol: %s", protocol)
+		return fmt.Errorf("unsupported protocol")
 	}
 
+	err := listener.Start(protocol, port)
 	if err != nil {
 		log.Print(err)
-		return
+		return err
 	}
 
-	s.setOnline()
-	log.Printf("Start listener, protocol: %s, port: %d", protocol, port)
+	s.listeners.Store(port, listener)
 
-	return
+	return nil
 }
 
-func (s *Server) setOffline() {
-	s.Status = 0
+func (s *Server) Stop(port int) error {
+	if v, ok := s.listeners.Load(port); ok {
+		l := v.(Listener)
+		s.listeners.Delete(port)
+		return l.Stop()
+	}
+	return fmt.Errorf("Listener does not exist")
 }
 
-func (s *Server) setOnline() {
-	s.Status = 1
-}
+func (s *Server) Listeners() *sync.Map { return &s.listeners }

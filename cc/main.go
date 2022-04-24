@@ -3,6 +3,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 
@@ -44,7 +45,5 @@ func main() {
 	router := gin.Default()
 	api.Register(router.Group("/api"))
 
-	// log.Fatal(router.RunTLS(os.Getenv("LISTEN_ADDR"), "cert.pem", "key.pem"))
-
-	log.Fatal(router.Run(os.Getenv("LISTEN_ADDR")))
+	log.Fatal(router.RunTLS(fmt.Sprintf("0.0.0.0:%s", os.Getenv("API_LISTEN_PORT")), "cert.pem", "key.pem"))
 }
